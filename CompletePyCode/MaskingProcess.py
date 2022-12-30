@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 from PIL import Image 
 import os
-import ImageAnnotation
+
 
 VID = 0
 SING_IMG = 1
