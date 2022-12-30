@@ -6,13 +6,14 @@ import os
 import ImageAnnotation
 import MaskingProcess
 
+
 VID = 0
 SING_IMG = 1
 nb_row = 4
+mode = SING_IMG
+
 
 if __name__ == "__main__":
-
-    mode = VID
 
     if (mode == VID): 
         #distinguer entre mode video et mode single image?
@@ -24,44 +25,32 @@ if __name__ == "__main__":
         images = MaskingProcess.obtain_images(name_images,vid_folder, mode)
 
         if images is not None:
-            images_post_process = ImageAnnotation.annotation(images, 1) 
-            height, width, layers = images_post_process[0].shape  
-            #print(images_post_process[0].shape)
+            for img in images:
+                img_annotated = ImageAnnotation.analyze_img(img)
+                cv2.imshow('vid : ', img_annotated)
+                if cv2.waitKey(1) == ord('q'):
+                    break           
 
-            video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc('M','J','P','G'), 10, (width, height)) 
-
-            #cv2.imshow('img post process', images_post_process[10])
-            #cv2.waitKey(10000)
-
-            # Appending the images to the video one by one
-            for img in images: 
-                video.write(img)
-
-            # Deallocating memories taken for window creation
-            cv2.destroyAllWindows() 
-            video.release()  # releasing the video generated
         else : 
             print('error : Images not found')
 
     if (mode == SING_IMG): 
         print('sing img')
-
         image_folder = '/home/roxane/Desktop/M3_2022/Caterra/crop-detection/Images_Preprocess/'
         name_images = 'crop_row_256.jpg'
 
         sing_image = MaskingProcess.obtain_images(name_images, image_folder, mode)
 
         if sing_image is not None : 
-            #print(sing_image)
-            #cv2.imshow('single analyzed image', sing_image[0])
-            #cv2.waitKey(1000)
-            image_post_process = ImageAnnotation.annotation(sing_image, 0) 
+            img_annotated = ImageAnnotation.analyze_img(sing_image[0])
+            cv2.imshow('single analyzed image', img_annotated)
+            cv2.waitKey(0)
+            if cv2.waitKey(1) == ord('q'):
+                    cv2.destroyAllWindows() 
 
         else : 
-            print('None')
-        #image_post_process = ImageAnnotation.annotation(sing_image) 
+            print('No image')
 
-        cv2.imshow('single analyzed image', image_post_process[0])
-        cv2.waitKey(1000)
+
 
         
