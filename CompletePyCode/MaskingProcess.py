@@ -31,6 +31,7 @@ def obtain_name_images(image_folder):
     name_images = [img for img in lst 
                 if img.endswith(".jpg") or
                     img.endswith(".jpeg") or
+                    img.endswith(".JPG") or
                     img.endswith("png")]
 
     return name_images 
@@ -88,7 +89,7 @@ def colors_to_array(colors_x) :
 
     for i in range(len(colors_x[0])):
         col = colors_x[0][i][0]
-        colors_rgb[i]=col
+        colors_rgb[i] = col
         colors_lab[i] = skimage.color.rgb2lab((col[0]/255, col[1]/255, col[2]/255))
 
     return colors_rgb, colors_lab
@@ -255,7 +256,7 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
     mask = []
 
     for i in range(crop_nb):
-        mask_single_crop = np.zeros_like(img_no_sky)
+        mask_single_crop = np.zeros_like(best_mask_edge)
 
         print('step ', (i+1), 'of ', crop_nb)
         acc, thetas, rhos = hough_line_improved(best_mask_edge_copy, th_acc)
@@ -385,3 +386,75 @@ def remove_horizon(p1, p2, m, masked_image):
         cond_horizon = 1
 
     return masked_image, cond_horizon
+
+
+def squared_distance_to_line(point, line_point1, line_point2):
+    # Convert the points to numpy arrays for easier calculations
+    point = np.array(point)
+    line_point1 = np.array(line_point1)
+    line_point2 = np.array(line_point2)
+
+    # Calculate the direction vector of the line
+    line_dir = line_point2 - line_point1
+
+    # Calculate the normal vector of the line
+    line_normal = np.array([line_dir[1], -line_dir[0]])
+
+    # Calculate the squared distance from the point to the line by taking the dot product of the normal vector
+    # with the vector pointing from the line to the point, and then dividing by the square of the length of the normal vector
+    return np.dot(line_normal, point - line_point1)**2 / np.dot(line_normal, line_normal)
+
+
+def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
+
+    model = None 
+    nb_cr = len(arr_mask)
+    data = np.zeros(((nb_cr+1),2)) #+1 for the VP point 
+    best_nb_inliers = 0
+
+    for it in range(max_iterations):
+        if (it%10==0):
+            print('iteration ', it, ' out of ', max_iterations)
+        
+        list_cr_lines = []
+
+        rand_vp = [vp_point[0] + np.random.randint(-10,10), vp_point[1] + np.random.randint(-10, 10)]
+
+        #first randomly select data 
+        data[nb_cr] = rand_vp
+        for i in range(nb_cr): #select randomlw one point from each mask
+
+            row = cv2.bitwise_and(img, arr_mask[i])
+            y,x = np.where(row>0)
+            rand_nb = np.random.randint(0, len(x)-1)
+            data[i] = [x[rand_nb], y[rand_nb]]
+            pt1 = (rand_vp[0], rand_vp[1])
+            pt2 = (x[rand_nb], y[rand_nb])
+            list_cr_lines.append([pt1, pt2])
+
+        nb_inliers = 0
+
+        
+        #calculate error 
+        for i in range(nb_cr):
+            row = cv2.bitwise_and(img, arr_mask[i])
+            x,y = np.where(row>0)
+            [p1,p2] = np.array(list_cr_lines[i])
+
+            for x_x, y_y in zip(x,y):
+                p3 = np.array(x_x,y_y)
+                err = squared_distance_to_line(p3, p1, p2)
+                #print(err)
+
+                if abs(err)<threshold:
+                    nb_inliers = nb_inliers + 1
+        
+
+        if nb_inliers>best_nb_inliers:
+            print(best_nb_inliers)
+            best_nb_inliers = nb_inliers
+            model = list_cr_lines
+    
+    print('nb inliers : ', nb_inliers, 'out of ', nb_cr * len(x))
+    
+    return model

@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import os
 import PerImageProcessing
 import MaskingProcess
 import Evaluation
@@ -12,7 +11,7 @@ INI_PROCESS = 0
 SPEED_PROCESS = 1
 FINAL_PROCESS = 2
 
-mode = VID
+mode = SING_IMG
 nb_row = 4
 
 def detection_process(images, mode):
@@ -26,7 +25,13 @@ def detection_process(images, mode):
 
     if stage == INI_PROCESS: #longer but needed to create initial mask of images 
         print('initial process...')
-        hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(images[0])
+        hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(images[0], nb_row=3)
+        
+        cv2.imshow('hough image :  :q ', cv2.cvtColor(hough_img, cv2.COLOR_RGB2BGR))
+        cv2.waitKey(0)
+        if cv2.waitKey(1) == ord('q'):
+            cv2.destroyAllWindows() 
+
         stage = SPEED_PROCESS
 
 
@@ -36,7 +41,7 @@ def detection_process(images, mode):
             img_annotated, arr_mask = PerImageProcessing.Speed_Process(img, arr_mask, col_best_mask, vp_pt)
             imgs_annotated.append(img_annotated)
             if(mode ==VID): 
-                cv2.imshow('vid : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+                cv2.imshow('vid :q ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
                 if cv2.waitKey(1) == ord('q'):
                     cv2.destroyAllWindows() 
                     break   
@@ -66,8 +71,8 @@ if __name__ == "__main__":
 
     if (mode == SING_IMG): 
         print('sing img')
-        imgs_folder = '/home/roxane/Desktop/M3_2022/Caterra/crop-detection/Images_Preprocess/'
-        name_images = 'crop_row_256.jpg'
+        imgs_folder = '/home/roxane/Desktop/M3_2022/crop_dataset/'
+        name_images = 'crop_row_001.JPG'
 
     #open and resize images for consistency --> returns img in rgb format
     images = MaskingProcess.obtain_images(name_images,imgs_folder, mode)
