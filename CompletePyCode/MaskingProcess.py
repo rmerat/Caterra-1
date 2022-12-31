@@ -175,6 +175,25 @@ def mask_vegetation(img_lab, col_lab):
     mask = cv2.inRange(img_lab, lower_col, upper_col)
     return mask
 
+def veg_segmentation(img):
+
+    # extract the main colors from the image 
+    colors_rgb = extract_rgb_colors(img)
+
+    # extract greenest color 
+    col_best_mask = greenest_color(colors_rgb)
+
+    # convert color and image to lab space
+    img_lab = skimage.color.rgb2lab(img/255)
+    col_best_mask_lab = skimage.color.rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
+
+    # vegetation segmentation using mask of the detected vegetal color
+    best_mask = mask_vegetation(img_lab, col_best_mask_lab)
+    best_mask_median = cv2.medianBlur(best_mask,3)
+    
+    return best_mask_median, col_best_mask
+
+
 def hough_line_improved(mask, angle_acc):
     """
     input : 2D mask + list containing the angle previously found

@@ -18,7 +18,7 @@ nb_row = 4
 def detection_process(images, mode):
     """
     input : list of img to be analyzed in rgb format
-    output : not yet defined, prob flag set to one if analyzing went smoothly 
+    output : not yet defined, prob data + flag set to one if analyzing went smoothly 
     """
 
     imgs_annotated = []
@@ -26,15 +26,14 @@ def detection_process(images, mode):
 
     if stage == INI_PROCESS: #longer but needed to create initial mask of images 
         print('initial process...')
-        img, arr_mask, col_best_mask = PerImageProcessing.Initial_Process(images[0])
+        hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(images[0])
         stage = SPEED_PROCESS
-
 
 
     if stage == SPEED_PROCESS: #quick, use of ransac 
         print('...speed process...')
         for img in images:
-            img_annotated, arr_mask = PerImageProcessing.Speed_Process(img, arr_mask)
+            img_annotated, arr_mask = PerImageProcessing.Speed_Process(img, arr_mask, col_best_mask, vp_pt)
             imgs_annotated.append(img_annotated)
             if(mode ==VID): 
                 cv2.imshow('vid : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
