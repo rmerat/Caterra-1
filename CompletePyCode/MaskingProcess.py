@@ -66,7 +66,7 @@ def obtain_images(name_images, image_folder, mode):
     return None
 
 
-def img_resize(img, output_width = 900):
+def img_resize(img, output_width = 320):
     """
     input : image
     output : resized image
@@ -451,7 +451,7 @@ def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
         
 
         if nb_inliers>best_nb_inliers:
-            print(best_nb_inliers)
+            print('new best nb inliers : ', best_nb_inliers)
             best_nb_inliers = nb_inliers
             model = list_cr_lines
     
