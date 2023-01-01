@@ -65,7 +65,6 @@ def obtain_images(name_images, image_folder, mode):
     
     return None
 
-
 def img_resize(img, output_width = 320):
     """
     input : image
@@ -77,7 +76,6 @@ def img_resize(img, output_width = 320):
     #this resize makes the video not work??
     #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
-
 
 def colors_to_array(colors_x) : 
     """
@@ -93,8 +91,6 @@ def colors_to_array(colors_x) :
         colors_lab[i] = skimage.color.rgb2lab((col[0]/255, col[1]/255, col[2]/255))
 
     return colors_rgb, colors_lab
-
-
 
 def donuts(colors_x): 
     """
@@ -170,7 +166,7 @@ def mask_vegetation(img_lab, col_lab):
     output :
     """
     # Using inRange method, to create a mask
-    thr = [8,8,8] #TODO : maybe change  thr according to histogram ??
+    thr = [8,20,8] #TODO : maybe change  thr according to histogram ??
     lower_col = col_lab - thr
     upper_col = col_lab + thr
     mask = cv2.inRange(img_lab, lower_col, upper_col)
@@ -193,7 +189,6 @@ def veg_segmentation(img):
     best_mask_median = cv2.medianBlur(best_mask,3)
     
     return best_mask_median, col_best_mask
-
 
 def hough_line_improved(mask, angle_acc):
     """
@@ -247,6 +242,8 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
     best_mask_edge_copy = np.copy(best_mask_edge)
     best_mask_evaluate = np.copy(img_no_sky)
     img_no_sky_copy = np.copy(img_no_sky)
+    band_width = int(img_no_sky.shape[1]/25)
+
 
     #crop_nb = 3
 
@@ -278,10 +275,10 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
         p1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
         p2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
 
-        cv2.line(best_mask_edge_copy, p1, p2, (0,0,0), 30)
+        cv2.line(best_mask_edge_copy, p1, p2, (0,0,0), band_width)
         cv2.line(best_mask_evaluate, p1, p2, (255,0,0), 3)
         cv2.line(img_no_sky_copy, p1, p2, (255,0,0), 3)
-        cv2.line(mask_single_crop, p1, p2, (255,0,0), 50)
+        cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
         mask.append(mask_single_crop)
 
     return mask, th_acc, r_acc, threshold_acc, best_mask_evaluate
@@ -314,7 +311,6 @@ def VP_detection(th_acc, r_acc, threshold_acc,img_no_sky_copy ):
     print('VP is : ', x0, y0)
 
     return x0,y0
-
 
 def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on):
 
@@ -353,17 +349,19 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on):
         m  = 0
     return p1, p2, m
 
-
-def remove_double(p1, p2, m, acc_m, masked_image):
+def remove_double(p1, p2, m, acc_m, masked_image, wd):
     cond_double = 0
     #print('in')
     #print(acc_m)
     if (len(acc_m)>=1):
-        for m_others in acc_m:
-            if (abs(m-m_others)<0.1): #if angle already detected 
-                #print('diff m', m - m_others)
 
-                cv2.line(masked_image, p1, p2, (0,0,0), 15)
+        for m_others in acc_m:
+            print('diff m', m - m_others)
+
+            if (abs(m-m_others)<0.1): #if angle already detected 
+                print('diff m', m - m_others)
+
+                cv2.line(masked_image, p1, p2, (0,0,0), wd)
                 cond_double = 0
                 #print('diff : ', m, m_others)
             
@@ -374,19 +372,18 @@ def remove_double(p1, p2, m, acc_m, masked_image):
 
     return masked_image, cond_double
 
-def remove_horizon(p1, p2, m, masked_image):
+def remove_horizon(p1, p2, m, masked_image, bw):
     thr = 0.1
     cond_horizon = 0
 
     if (abs(m)<thr):
-        cv2.line(masked_image, p1, p2, (0,0,0), 15)
+        cv2.line(masked_image, p1, p2, (0,0,0), bw)
         #print('horizon detected', m)
 
     if (abs(m)>=thr):
         cond_horizon = 1
 
     return masked_image, cond_horizon
-
 
 def squared_distance_to_line(point, line_point1, line_point2):
     # Convert the points to numpy arrays for easier calculations
@@ -403,7 +400,6 @@ def squared_distance_to_line(point, line_point1, line_point2):
     # Calculate the squared distance from the point to the line by taking the dot product of the normal vector
     # with the vector pointing from the line to the point, and then dividing by the square of the length of the normal vector
     return np.dot(line_normal, point - line_point1)**2 / np.dot(line_normal, line_normal)
-
 
 def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
 
@@ -458,3 +454,86 @@ def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
     print('nb inliers : ', nb_inliers, 'out of ', nb_cr * len(x))
     
     return model
+
+def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
+
+    img_lab = skimage.color.rgb2lab(image/255) #calculate best color mask based on previously calculated color 
+    col_best_mask_lab = skimage.color.rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
+
+    best_mask = mask_vegetation(img_lab, col_best_mask_lab)
+    #plt.imshow(mask_col)
+    band_width = int(image.shape[1]/25)
+    print('bw : ', band_width)
+    
+
+    # mask_col_edge = cv2.Canny(mask_col,100,200) #add la cond sur le laplacien 
+
+    pts1 = []
+    pts2 = []
+    acc_m = []
+    masked_images = []
+    img_ransac_lines = np.copy(image)
+    #cr = np.zeros_like(best_mask)
+    arr_mask_new = []
+
+    
+    for i in range(len(arr_mask)):
+        masked_images.append(cv2.bitwise_and(best_mask, arr_mask[i]))
+
+
+    for i in range(len(arr_mask)): #for each row
+        mask_single_crop = np.zeros_like(best_mask)
+        cond = m = cond_horizon = cond_double = 0
+
+        while(cond_horizon*cond_double == 0 ): 
+            p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 1)
+            masked_images[i], cond_horizon = remove_horizon(p1, p2, m, masked_images[i], band_width)
+            masked_images[i], cond_double = remove_double(p1, p2, m, acc_m, masked_images[i], band_width)
+            #cond_horizon, cond_double = check_ransac_cond(p1,p2,m, acc_m)
+            if (cond_horizon*cond_double==0):
+                print('still not met')
+                cv2.imshow('new with still bad cond : ', masked_images[i])
+        
+        cv2.imshow('new good : ', masked_images[i])
+        cv2.waitKey(0)
+
+        pts1.append(p1)
+        pts2.append(p2)
+        acc_m.append(m)
+        cv2.line(img_ransac_lines, p1, p2, (255,0,0), 1)
+        #cv2.line(cr, p1, p2, (255,0,0), 1)
+        cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
+        arr_mask_new.append(mask_single_crop)
+
+    vp_pt = intersect_multiple_lines(pts1, pts2)
+
+    cv2.imshow('ransac lines : ', img_ransac_lines)
+    
+
+    return arr_mask_new, img_ransac_lines, vp_pt
+
+def intersect_multiple_lines(pts1,pts2):
+    """P0 and P1 are NxD arrays defining N lines.
+    D is the dimension of the space. This function 
+    returns the least squares intersection of the N
+    lines from the system given by eq. 13 in 
+    http://cal.cs.illinois.edu/~johannes/research/LS_line_intersect.pdf.
+    """
+    P0 = np.asarray(pts1)
+    P1 = np.asarray(pts2)
+
+    # generate all line direction vectors 
+    n = (P1-P0)/np.linalg.norm(P1-P0,axis=1)[:,np.newaxis] # normalized
+
+    # generate the array of all projectors 
+    projs = np.eye(n.shape[1]) - n[:,:,np.newaxis]*n[:,np.newaxis]  # I - n*n.T
+    
+    # generate R matrix and q vector
+    R = projs.sum(axis=0)
+    q = (projs @ P0[:,:,np.newaxis]).sum(axis=0)
+
+    # solve the least squares problem for the 
+    # intersection point p: Rp = q
+    p = np.linalg.lstsq(R,q,rcond=None)[0]
+
+    return(p)
