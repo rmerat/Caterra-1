@@ -11,10 +11,10 @@ INI_PROCESS = 0
 SPEED_PROCESS = 1
 FINAL_PROCESS = 2
 
-mode = SING_IMG
+mode = VID
 nb_row = 6
 
-def detection_process(images, mode):
+def detection_process(images, mode, nb_row = 6, sky = 1):
     """
     input : list of img to be analyzed in rgb format
     output : not yet defined, prob data + flag set to one if analyzing went smoothly 
@@ -25,14 +25,15 @@ def detection_process(images, mode):
 
     if stage == INI_PROCESS: #longer but needed to create initial mask of images 
         print('initial process...')
-        hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(images[0], nb_row=6)
+        hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(images[0], nb_row = nb_row, sky = sky)
+        height_original = images[0].shape[0]
+        height, _, = arr_mask[0].shape
         
-        """
         cv2.imshow('hough image :  :q ', cv2.cvtColor(hough_img, cv2.COLOR_RGB2BGR))
         cv2.waitKey(0)
         if cv2.waitKey(1) == ord('q'):
             cv2.destroyAllWindows() 
-        """
+        
 
         stage = SPEED_PROCESS
 
@@ -41,6 +42,7 @@ def detection_process(images, mode):
         print('...speed process...')
         for idx, img in enumerate(images):
             print(idx, 'vp : ', vp_pt)
+            img = img[height_original-height:,:,:]
             arr_mask, img_annotated, vp_pt = MaskingProcess.speed_process_lines(img, col_best_mask, arr_mask, vp_pt)
             #vp point to recaulculate 
             # img_annotated, arr_mask = PerImageProcessing.Speed_Process(img, arr_mask, col_best_mask, vp_pt)
@@ -71,6 +73,7 @@ def detection_process(images, mode):
     return data #return something en rapport avec le bon acheminement du process
 
 if __name__ == "__main__":
+    sky_on=1
 
     #first, get the name of the files we are going to analyze
     if (mode == VID):
@@ -90,7 +93,7 @@ if __name__ == "__main__":
 
     # Main Detection function 
     if images is not None : 
-        detection_process(images, mode) 
+        detection_process(images, mode, nb_row = 6, sky = 1)
 
     else : 
         print('No image')

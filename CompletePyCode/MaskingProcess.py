@@ -65,7 +65,7 @@ def obtain_images(name_images, image_folder, mode):
     
     return None
 
-def img_resize(img, output_width = 320):
+def img_resize(img, output_width = 500):
     """
     input : image
     output : resized image
@@ -166,13 +166,13 @@ def mask_vegetation(img_lab, col_lab):
     output :
     """
     # Using inRange method, to create a mask
-    thr = [8,20,8] #TODO : maybe change  thr according to histogram ??
+    thr = [8,8,8] # before : 8 20 8 , TODO : maybe change  thr according to histogram ??
     lower_col = col_lab - thr
     upper_col = col_lab + thr
     mask = cv2.inRange(img_lab, lower_col, upper_col)
     return mask
 
-def veg_segmentation(img):
+def veg_segmentation(img, img_no_sky):
 
     # extract the main colors from the image 
     colors_rgb = extract_rgb_colors(img)
@@ -181,7 +181,7 @@ def veg_segmentation(img):
     col_best_mask = greenest_color(colors_rgb)
 
     # convert color and image to lab space
-    img_lab = skimage.color.rgb2lab(img/255)
+    img_lab = skimage.color.rgb2lab(img_no_sky/255)
     col_best_mask_lab = skimage.color.rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
 
     # vegetation segmentation using mask of the detected vegetal color
@@ -330,7 +330,7 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on):
         #cv2.waitKey(20000)
     if (1) : #(data.shape>10):
         model, inliers = skimage.measure.ransac(data, skimage.measure.LineModelND, min_samples=2,
-                                    residual_threshold=1, max_trials=100)
+                                    residual_threshold=1, max_trials=1000)
         temp = np.copy(masked_images_i)
         y0, x0 = model.params[0]#.astype(int)
         t1, t0 = model.params[1]
@@ -356,10 +356,10 @@ def remove_double(p1, p2, m, acc_m, masked_image, wd):
     if (len(acc_m)>=1):
 
         for m_others in acc_m:
-            print('diff m', m - m_others)
+            #print('diff m', m - m_others)
 
             if (abs(m-m_others)<0.1): #if angle already detected 
-                print('diff m', m - m_others)
+                #print('diff m', m - m_others)
 
                 cv2.line(masked_image, p1, p2, (0,0,0), wd)
                 cond_double = 0
@@ -440,7 +440,7 @@ def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
             for x_x, y_y in zip(x,y):
                 p3 = np.array(x_x,y_y)
                 err = squared_distance_to_line(p3, p1, p2)
-                #print(err)
+                print(err)
 
                 if abs(err)<threshold:
                     nb_inliers = nb_inliers + 1
@@ -486,16 +486,16 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
         cond = m = cond_horizon = cond_double = 0
 
         while(cond_horizon*cond_double == 0 ): 
-            p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 1)
+            p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 0)
             masked_images[i], cond_horizon = remove_horizon(p1, p2, m, masked_images[i], band_width)
             masked_images[i], cond_double = remove_double(p1, p2, m, acc_m, masked_images[i], band_width)
             #cond_horizon, cond_double = check_ransac_cond(p1,p2,m, acc_m)
             if (cond_horizon*cond_double==0):
                 print('still not met')
-                cv2.imshow('new with still bad cond : ', masked_images[i])
+                #cv2.imshow('new with still bad cond : ', masked_images[i])
         
-        cv2.imshow('new good : ', masked_images[i])
-        cv2.waitKey(0)
+        #cv2.imshow('new good : ', masked_images[i])
+        #cv2.waitKey(0)
 
         pts1.append(p1)
         pts2.append(p2)
@@ -505,9 +505,9 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
         cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
         arr_mask_new.append(mask_single_crop)
 
-    vp_pt = intersect_multiple_lines(pts1, pts2)
+    #TODO : put back : vp_pt = intersect_multiple_lines(pts1, pts2)
 
-    cv2.imshow('ransac lines : ', img_ransac_lines)
+    #cv2.imshow('ransac lines : ', img_ransac_lines)
     
 
     return arr_mask_new, img_ransac_lines, vp_pt
@@ -537,3 +537,62 @@ def intersect_multiple_lines(pts1,pts2):
     p = np.linalg.lstsq(R,q,rcond=None)[0]
 
     return(p)
+
+def cal_skyline(mask):
+    h, w = mask.shape
+    for i in range(w): #for each column
+        raw = mask[:, i]
+        after_median = scipy.signal.medfilt(raw, 19)
+        try:
+            first_zero_index = np.where(after_median == 0)[0][0]
+            first_one_index = np.where(after_median == 1)[0][0]
+            if first_zero_index > 20: #if the sky is bigger then 20 px starting from the top
+                mask[first_one_index:first_zero_index, i] = 1 #put 1 between sky and land
+                mask[first_zero_index:, i] = 0 #put 0 in land (appears black)
+                mask[:first_one_index, i] = 0 #put 0 before the sky starts 
+        except:
+            continue
+    return mask
+
+def get_sky_region_gradient(img):
+    h, w, _ = img.shape
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img_gray = cv2.blur(img_gray, (9, 3))
+    img_gray= cv2.medianBlur(img_gray, 5)
+    lap = cv2.Laplacian(img_gray, cv2.CV_8U)
+    gradient_mask = (lap < 6).astype(np.uint8) # we keep region with small laplacian ->sky
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 3))
+    mask = cv2.morphologyEx(gradient_mask, cv2.MORPH_ERODE, kernel) #erosion that takes the minimum of neighbouring px
+    mask_sky = cal_skyline(mask)
+    after_img = cv2.bitwise_and(img, img, mask=mask_sky)
+    return after_img
+
+def cut_image_from_mask(grad_sky,img):
+    #Cut from the top until less then 60% of sky is detected
+
+    low = np.array([1,1,1])
+    high = np.array([256,256,256])
+    masked_sky = cv2.inRange(grad_sky, low, high)
+    h,w = masked_sky.shape
+    i = h
+    count = flag = j = 0
+    img_new = img
+    while((i>0) & (flag==0)):
+        i=i-1 
+        j = count = 0
+        while(j<w):
+            if (masked_sky[i,j] == 255) : # if px is sky 
+                count = count + 1
+            j=j+1
+            if (count > (w*0.3)): #cut until 30% of the line isn't sky
+                lim = i; 
+                flag = 1
+
+    img_new = img[lim:,:,:]
+
+
+    #cv2.imshow('Image with Sky cut out', cv2.cvtColor(img_new, cv2.COLOR_BGR2RGB))
+    #cv2.waitKey(2000)
+    
+    return img_new
+

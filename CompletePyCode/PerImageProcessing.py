@@ -17,14 +17,24 @@ import os
 import MaskingProcess
 
 
-def Initial_Process(img, nb_row = 4,sky_on = 0):
+def Initial_Process(img, nb_row = 4, sky = 0):
 
-    best_mask_median, col_best_mask = MaskingProcess.veg_segmentation(img)
+    #Cut off sky
+    if(sky==1) : 
+        grad_sky = MaskingProcess.get_sky_region_gradient(img)
+        img_no_sky = MaskingProcess.cut_image_from_mask(grad_sky, img)
+    else : 
+        img_no_sky = img
+
+    best_mask_median, col_best_mask = MaskingProcess.veg_segmentation(img, img_no_sky)
     best_mask_median_edge = cv2.Canny(best_mask_median,100,200)
 
-    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate = MaskingProcess.keep_mask_max_acc_lines(best_mask_median_edge, img, nb_row)
+    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate = MaskingProcess.keep_mask_max_acc_lines(best_mask_median_edge, img_no_sky, nb_row)
 
     vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, best_mask_median_edge))
+
+    cv2.imshow('after initial process', best_mask_evaluate)
+    cv2.waitKey(0)
 
     return best_mask_evaluate, arr_mask, col_best_mask, vp_pt
 
@@ -39,10 +49,10 @@ def Speed_Process(img, arr_mask, col_best_mask, vp_pt, nb_row = 4,  sky_on = 0):
     best_mask = MaskingProcess.mask_vegetation(img_lab, col_best_mask_lab)
     best_mask_median = cv2.medianBlur(best_mask,3)
 
-    cv2.imshow('best_mask_median', best_mask_median)
-    cv2.waitKey(1000)
+    #cv2.imshow('best_mask_median', best_mask_median)
+    #cv2.waitKey(1000)
 
-    print(best_mask_median.shape)
+    #print(best_mask_median.shape)
     model = MaskingProcess.pattern_ransac(arr_mask, vp_pt, best_mask_median) 
 
 
