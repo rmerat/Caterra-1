@@ -244,7 +244,6 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
     img_no_sky_copy = np.copy(img_no_sky)
     band_width = int(img_no_sky.shape[1]/25)
 
-
     #crop_nb = 3
 
     th_acc = []
@@ -312,7 +311,7 @@ def VP_detection(th_acc, r_acc, threshold_acc,img_no_sky_copy ):
 
     return x0,y0
 
-def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on):
+def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_mask_i, i):
 
     mask_single_crop = np.zeros_like(img_no_sky)
     x,y = np.where(masked_images_i>0)
@@ -328,9 +327,26 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on):
     #print('data : ', data.size)
     #if (data.size<10):
         #cv2.waitKey(20000)
+
+
+    if(data.shape[0]>700):
+        data = data[np.random.choice(data.shape[0], 600, replace=False), :]
+
+    #put condition, if data to small, go to initial process!
+    if(data.shape[0]<100):
+        print(' mask that has no data : ', i)
+        print(data.shape)
+        cv2.imshow('masked image i', masked_images_i)
+        cv2.imshow('best_mask', best_mask)
+        cv2.imshow('arr_mask_i', arr_mask_i)
+
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+
     if (1) : #(data.shape>10):
-        model, inliers = skimage.measure.ransac(data, skimage.measure.LineModelND, min_samples=2,
-                                    residual_threshold=1, max_trials=1000)
+        model, inliers = skimage.measure.ransac(data, skimage.measure.LineModelND, min_samples=2, residual_threshold=1, max_trials=1000)
         temp = np.copy(masked_images_i)
         y0, x0 = model.params[0]#.astype(int)
         t1, t0 = model.params[1]
@@ -463,7 +479,7 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
     best_mask = mask_vegetation(img_lab, col_best_mask_lab)
     #plt.imshow(mask_col)
     band_width = int(image.shape[1]/25)
-    print('bw : ', band_width)
+    #print('bw : ', band_width)
     
 
     # mask_col_edge = cv2.Canny(mask_col,100,200) #add la cond sur le laplacien 
@@ -479,14 +495,25 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
     
     for i in range(len(arr_mask)):
         masked_images.append(cv2.bitwise_and(best_mask, arr_mask[i]))
+        cv2.imshow('masked image of i :', masked_images[i])
+        cv2.waitKey(0)
 
-
+    
     for i in range(len(arr_mask)): #for each row
         mask_single_crop = np.zeros_like(best_mask)
         cond = m = cond_horizon = cond_double = 0
 
+
+        """
+        p1 = [0, 100]
+        p2 = [100, 0]
+        m=0"""
+
+        #p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 0)
+
+        
         while(cond_horizon*cond_double == 0 ): 
-            p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 0)
+            p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 0, best_mask, arr_mask[i], i)
             masked_images[i], cond_horizon = remove_horizon(p1, p2, m, masked_images[i], band_width)
             masked_images[i], cond_double = remove_double(p1, p2, m, acc_m, masked_images[i], band_width)
             #cond_horizon, cond_double = check_ransac_cond(p1,p2,m, acc_m)
@@ -494,9 +521,7 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
                 print('still not met')
                 #cv2.imshow('new with still bad cond : ', masked_images[i])
         
-        #cv2.imshow('new good : ', masked_images[i])
-        #cv2.waitKey(0)
-
+    
         pts1.append(p1)
         pts2.append(p2)
         acc_m.append(m)
@@ -508,6 +533,7 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
     #TODO : put back : vp_pt = intersect_multiple_lines(pts1, pts2)
 
     #cv2.imshow('ransac lines : ', img_ransac_lines)
+    
     
 
     return arr_mask_new, img_ransac_lines, vp_pt

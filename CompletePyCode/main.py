@@ -29,21 +29,24 @@ def detection_process(images, mode, nb_row = 6, sky = 1):
         height_original = images[0].shape[0]
         height, _, = arr_mask[0].shape
         
-        cv2.imshow('hough image :  :q ', cv2.cvtColor(hough_img, cv2.COLOR_RGB2BGR))
-        cv2.waitKey(0)
-        if cv2.waitKey(1) == ord('q'):
-            cv2.destroyAllWindows() 
+        #cv2.imshow('hough image :  :q ', cv2.cvtColor(hough_img, cv2.COLOR_RGB2BGR))
+        #cv2.waitKey(0)
+        #if cv2.waitKey(1) == ord('q'):
+            #cv2.destroyAllWindows() 
         
 
         stage = SPEED_PROCESS
 
-
     if stage == SPEED_PROCESS: #quick, use of ransac 
         print('...speed process...')
         for idx, img in enumerate(images):
-            print(idx, 'vp : ', vp_pt)
+            #print(idx, 'vp : ', vp_pt)
             img = img[height_original-height:,:,:]
+            
+            
             arr_mask, img_annotated, vp_pt = MaskingProcess.speed_process_lines(img, col_best_mask, arr_mask, vp_pt)
+            
+            #img_annotated = img
             #vp point to recaulculate 
             # img_annotated, arr_mask = PerImageProcessing.Speed_Process(img, arr_mask, col_best_mask, vp_pt)
             imgs_annotated.append(img_annotated)
@@ -57,8 +60,6 @@ def detection_process(images, mode, nb_row = 6, sky = 1):
                     break   
             
             stage = FINAL_PROCESS
-
-
 
     if stage == FINAL_PROCESS : #save data and evaluate it 
         print('...processing done!')

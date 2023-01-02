@@ -33,8 +33,10 @@ def Initial_Process(img, nb_row = 4, sky = 0):
 
     vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, best_mask_median_edge))
 
-    cv2.imshow('after initial process', best_mask_evaluate)
-    cv2.waitKey(0)
+    #cv2.imshow('after initial process', best_mask_evaluate)
+    #cv2.waitKey(0)
+
+    arr_mask = check_equidistance(arr_mask)
 
     return best_mask_evaluate, arr_mask, col_best_mask, vp_pt
 
@@ -68,3 +70,5 @@ def Speed_Process(img, arr_mask, col_best_mask, vp_pt, nb_row = 4,  sky_on = 0):
 
     return annotated_img, arr_mask
 
+def check_equidistance(arr_mask):
+    return arr_mask
