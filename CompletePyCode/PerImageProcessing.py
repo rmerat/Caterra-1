@@ -74,7 +74,7 @@ def check_equidistance(arr_mask):
 
     return arr_mask
 
-def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
+def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
 
     img_lab = skimage.color.rgb2lab(image/255) #calculate best color mask based on previously calculated color 
     col_best_mask_lab = skimage.color.rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
@@ -83,8 +83,6 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
     #plt.imshow(mask_col)
     band_width = int(image.shape[1]/25)
     #print('bw : ', band_width)
-    
-
     # mask_col_edge = cv2.Canny(mask_col,100,200) #add la cond sur le laplacien 
 
     pts1 = []
@@ -117,13 +115,13 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
 
         
         while(cond_horizon*cond_double == 0 ): 
-            p1, p2, m, cond_speed = MaskingProcess.apply_ransac(image, masked_images[i], vp_pt, 0, best_mask, arr_mask[i], i)
+            p1, p2, m, cond_speed = MaskingProcess.apply_ransac(image, masked_images[i], vp_pt, vp_on, best_mask, arr_mask[i], i) #HERE JUST CHANGED 
             
             if (cond_speed==0): 
                 print('reinitialization')
                 #reinitialize(img_lab, col_best_mask_lab)
                 #p1, p2, m, cond_speed = MaskingProcess.apply_ransac(image, masked_images[i], vp_pt, 0, best_mask, arr_mask[i], i)
-                return arr_mask_new, img_ransac_lines, vp_pt, cond_speed
+                return arr_mask_new, img_ransac_lines, vp_pt, cond_speed, crops_only
 
             
             masked_images[i], cond_horizon = MaskingProcess.remove_horizon(p1, p2, m, masked_images[i], band_width)
@@ -146,47 +144,5 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
 
     #cv2.imshow('ransac lines : ', img_ransac_lines)
 
-    return arr_mask_new, img_ransac_lines, vp_pt, 1, crops_only 
+    return arr_mask_new, img_ransac_lines, vp_pt, 1, crops_only, pts1, pts2
 
-"""
-def reinitialize(img_lab, col_best_mask_lab): 
-    
-    print('initial process...')
-
-    hough_img, arr_mask, col_best_mask, vp_pt = Initial_Process(images[0], nb_row = nb_row, sky = sky)
-
-
-    best_mask_median, col_best_mask = MaskingProcess.veg_segmentation(img, img_no_sky)
-    best_mask_median_edge = cv2.Canny(best_mask_median,100,200)
-
-    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate = MaskingProcess.keep_mask_max_acc_lines(best_mask_median_edge, img_no_sky, nb_row)
-
-    vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, best_mask_median_edge))
-
-    #cv2.imshow('after initial process', best_mask_evaluate)
-    #cv2.waitKey(0)
-
-    arr_mask = check_equidistance(arr_mask)
-
-
-
-
-    height_original = images[0].shape[0]
-    height, _, = arr_mask[0].shape
-
-    return image, col_best_mask, arr_mask, vp_pt
-
-    return 0
-
-
-
-        print('initial process...')
-        hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(images[0], nb_row = nb_row, sky = sky)
-        height_original = images[0].shape[0]
-        height, _, = arr_mask[0].shape
-        
-        #cv2.imshow('hough image :  :q ', cv2.cvtColor(hough_img, cv2.COLOR_RGB2BGR))
-        #cv2.waitKey(0)
-        #if cv2.waitKey(1) == ord('q'):
-            #cv2.destroyAllWindows() 
-"""

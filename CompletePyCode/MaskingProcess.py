@@ -58,7 +58,7 @@ def obtain_images(name_images, image_folder, mode):
         img = cv2.imread(os.path.join(image_folder, name_images))
         if img is not None : 
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img_small = img_resize(img_rgb, output_width=900)
+            img_small = img_resize(img_rgb, output_width=320)
             imgs.append(img_small)
         else : 
             print('no image read')
@@ -224,7 +224,7 @@ def hough_line_improved(mask, angle_acc):
             # Calculate rho. diag_len is added for a positive index
             rho = round(x * cos_t[t_idx] + y * sin_t[t_idx]) + diag_len
             accumulator[rho, t_idx] += 1
-            if (abs(np.rad2deg(thetas[t_idx])-90)<20): #if horizontale lignes 
+            if (abs(np.rad2deg(thetas[t_idx])-90)<25): #if horizontale lignes 
                 accumulator[:, t_idx] = 0
             
             for angle in angle_acc:
@@ -337,7 +337,7 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
 
 
     if(data.shape[0]>700):
-        data = data[np.random.choice(data.shape[0], 600, replace=False), :]
+        data = data[np.random.choice(data.shape[0], 500, replace=False), :]
 
     #put condition, if data to small, go to initial process!
     if(data.shape[0]<50):
@@ -399,7 +399,7 @@ def remove_double(p1, p2, m, acc_m, masked_image, wd):
     return masked_image, cond_double
 
 def remove_horizon(p1, p2, m, masked_image, bw):
-    thr = 0.1
+    thr = 0.2 #before : 0.1
     cond_horizon = 0
 
     if (abs(m)<thr):
@@ -480,8 +480,6 @@ def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
     print('nb inliers : ', nb_inliers, 'out of ', nb_cr * len(x))
     
     return model
-
-
 
 def intersect_multiple_lines(pts1,pts2):
     """P0 and P1 are NxD arrays defining N lines.
