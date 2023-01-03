@@ -11,9 +11,7 @@ INI_PROCESS = 0
 SPEED_PROCESS = 1
 FINAL_PROCESS = 2
 
-nb_row = 3
-
-def detection_process(images, mode, nb_row = 6, sky = 1):
+def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1):
     """
     input : list of img to be analyzed in rgb format
     output : not yet defined, prob data + flag set to one if analyzing went smoothly 
@@ -39,7 +37,7 @@ def detection_process(images, mode, nb_row = 6, sky = 1):
             #print('...speed process...')
             #print(idx, 'vp : ', vp_pt)
             img = img[height_original-height:,:,:]
-            arr_mask, img_annotated, vp_pt, cond_speed, img_crops_only = PerImageProcessing.speed_process_lines(img, col_best_mask, arr_mask, vp_pt)
+            arr_mask, img_annotated, vp_pt, cond_speed, img_crops_only, pts1, pts2 = PerImageProcessing.speed_process_lines(img, col_best_mask, arr_mask, vp_pt, vp_on=vp_on)
             
             if(cond_speed==0):
                 print('back to ini!')
@@ -68,11 +66,18 @@ def detection_process(images, mode, nb_row = 6, sky = 1):
 
     if stage == FINAL_PROCESS : #save data and evaluate it 
         print('...processing done!')
-        Evaluation.SaveData(img_crops_only)
+
         """data = Evaluation.SaveData(crops_only)
         #TODO:implement evaluation """
         if(mode ==SING_IMG):
+            crop_only = Evaluation.SaveData(img_crops_only, pts1, pts2)
+            cop, cv, dv, v0 = Evaluation.LoadGroundTruth(name_images)
+            score, precision = Evaluation.evaluate_results(cv, dv, v0)
+            #print(score, precision)
+
+
             cv2.imshow('img : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+            cv2.imshow('crop_only', crop_only)
             cv2.waitKey(0)
             if cv2.waitKey(1) == ord('q'):
                 cv2.destroyAllWindows()
@@ -92,17 +97,19 @@ if __name__ == "__main__":
         imgs_folder = '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/'
         name_images = MaskingProcess.obtain_name_images(imgs_folder)
         sky_on = 1
-        nb_row = 6
+        nb_row = 5
+        vp_on = 0
 
 
     if (mode == SING_IMG): 
         print('sing img')
         imgs_folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines'
-        name_images = 'crop_row_001.JPG' #crop_row_001, crop_row_020, crop_row_053
+        name_images = 'crop_row_023.JPG' #crop_row_001, crop_row_020, crop_row_053
         #imgs_folder = '/home/roxane/Desktop/M3_2022/crop_dataset/'
         #name_images = 'crop_row_001.JPG'
         sky_on = 0
-        nb_row = 3
+        nb_row = 1
+        vp_on = 1
 
 
     #open and resize images for consistency --> returns img in rgb format
@@ -110,7 +117,7 @@ if __name__ == "__main__":
 
     # Main Detection function 
     if images is not None : 
-        detection_process(images, mode, nb_row = nb_row, sky = sky_on)
+        detection_process(images, mode, name_images, nb_row = nb_row, sky = sky_on, vp_on = vp_on)
 
     else : 
         print('No image')
