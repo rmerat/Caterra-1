@@ -43,11 +43,14 @@ def obtain_images(name_images, image_folder, mode):
     """
     imgs = []
     if mode == VID : 
-        for name in name_images:
+        for idx, name in enumerate(name_images):
             img = cv2.imread(os.path.join(image_folder, name))
             if img is not None : 
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                img_small = img_resize(img_rgb)
+                if (idx!=0): 
+                    img_small = img_resize(img_rgb)#, output_width=imgs[0].shape[0])
+                if(idx==0) : 
+                    img_small = img_resize(img_rgb)#, output_width=img.shape[0])
                 imgs.append(img_small)
 
     if mode == SING_IMG :
@@ -55,7 +58,7 @@ def obtain_images(name_images, image_folder, mode):
         img = cv2.imread(os.path.join(image_folder, name_images))
         if img is not None : 
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img_small = img_resize(img_rgb)
+            img_small = img_resize(img_rgb, output_width=900)
             imgs.append(img_small)
         else : 
             print('no image read')
@@ -65,7 +68,7 @@ def obtain_images(name_images, image_folder, mode):
     
     return None
 
-def img_resize(img, output_width = 500):
+def img_resize(img, output_width = 900):
     """
     input : image
     output : resized image
@@ -324,6 +327,10 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         data_vp = np.column_stack([vp_data_x, vp_data_y])
         data = np.row_stack([data, data_vp])
 
+    #INITIALIATE COND SPEED??
+    cond_speed = 0
+
+
     #print('data : ', data.size)
     #if (data.size<10):
         #cv2.waitKey(20000)
@@ -333,19 +340,21 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         data = data[np.random.choice(data.shape[0], 600, replace=False), :]
 
     #put condition, if data to small, go to initial process!
-    if(data.shape[0]<100):
+    if(data.shape[0]<50):
         print(' mask that has no data : ', i)
         print(data.shape)
-        cv2.imshow('masked image i', masked_images_i)
-        cv2.imshow('best_mask', best_mask)
-        cv2.imshow('arr_mask_i', arr_mask_i)
+        #cv2.imshow('masked image i', masked_images_i)
+        #cv2.imshow('best_mask', best_mask)
+        #cv2.imshow('arr_mask_i', arr_mask_i)
+        cond_speed = 0
+        p1 = [0,0]
+        p2 = [0, 1]
+        m  = 0
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
 
-
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-
-    if (1) : #(data.shape>10):
+    else : #(data.shape>10):
+        cond_speed = 1
         model, inliers = skimage.measure.ransac(data, skimage.measure.LineModelND, min_samples=2, residual_threshold=1, max_trials=1000)
         temp = np.copy(masked_images_i)
         y0, x0 = model.params[0]#.astype(int)
@@ -359,11 +368,12 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         y1 = (y0 - 500*m)
         p1 = [int(x1),int(y1)]
         p2 = [int(x2),int(y2)]
-    else : 
+    """else : 
         p1 = [0,0]
         p2 = [0, 1]
-        m  = 0
-    return p1, p2, m
+        m  = 0"""
+
+    return p1, p2, m, cond_speed
 
 def remove_double(p1, p2, m, acc_m, masked_image, wd):
     cond_double = 0
@@ -471,72 +481,7 @@ def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
     
     return model
 
-def speed_process_lines(image, col_best_mask, arr_mask, vp_pt):
 
-    img_lab = skimage.color.rgb2lab(image/255) #calculate best color mask based on previously calculated color 
-    col_best_mask_lab = skimage.color.rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
-
-    best_mask = mask_vegetation(img_lab, col_best_mask_lab)
-    #plt.imshow(mask_col)
-    band_width = int(image.shape[1]/25)
-    #print('bw : ', band_width)
-    
-
-    # mask_col_edge = cv2.Canny(mask_col,100,200) #add la cond sur le laplacien 
-
-    pts1 = []
-    pts2 = []
-    acc_m = []
-    masked_images = []
-    img_ransac_lines = np.copy(image)
-    #cr = np.zeros_like(best_mask)
-    arr_mask_new = []
-
-    
-    for i in range(len(arr_mask)):
-        masked_images.append(cv2.bitwise_and(best_mask, arr_mask[i]))
-        cv2.imshow('masked image of i :', masked_images[i])
-        cv2.waitKey(0)
-
-    
-    for i in range(len(arr_mask)): #for each row
-        mask_single_crop = np.zeros_like(best_mask)
-        cond = m = cond_horizon = cond_double = 0
-
-
-        """
-        p1 = [0, 100]
-        p2 = [100, 0]
-        m=0"""
-
-        #p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 0)
-
-        
-        while(cond_horizon*cond_double == 0 ): 
-            p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 0, best_mask, arr_mask[i], i)
-            masked_images[i], cond_horizon = remove_horizon(p1, p2, m, masked_images[i], band_width)
-            masked_images[i], cond_double = remove_double(p1, p2, m, acc_m, masked_images[i], band_width)
-            #cond_horizon, cond_double = check_ransac_cond(p1,p2,m, acc_m)
-            if (cond_horizon*cond_double==0):
-                print('still not met')
-                #cv2.imshow('new with still bad cond : ', masked_images[i])
-        
-    
-        pts1.append(p1)
-        pts2.append(p2)
-        acc_m.append(m)
-        cv2.line(img_ransac_lines, p1, p2, (255,0,0), 1)
-        #cv2.line(cr, p1, p2, (255,0,0), 1)
-        cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
-        arr_mask_new.append(mask_single_crop)
-
-    #TODO : put back : vp_pt = intersect_multiple_lines(pts1, pts2)
-
-    #cv2.imshow('ransac lines : ', img_ransac_lines)
-    
-    
-
-    return arr_mask_new, img_ransac_lines, vp_pt
 
 def intersect_multiple_lines(pts1,pts2):
     """P0 and P1 are NxD arrays defining N lines.
