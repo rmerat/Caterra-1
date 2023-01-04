@@ -13,18 +13,12 @@ def SaveData(cr, pts1, pts2):
     for p1, p2 in zip(pts1, pts2):
         x1,y1 = p1
         x2,y2 = p2
-        #m = (y2-y1) / (x2-x1)
-        #b = y1 - m* x1
-
         m = (x2-x1) / (y2-y1)
         b = x1 - m*y1
 
-        #print('equation of line : y = ', m, '*x + ', b)
         acc_m.append(m)
         acc_b.append(b)
     
-    #print('acc  :', acc_m, 'acc b : ', acc_b)
-
     with open('CropsPersonnalResults.txt', 'w') as f:
         for line in range(cr.shape[0]):
             pts = []
@@ -33,11 +27,8 @@ def SaveData(cr, pts1, pts2):
                 pts.append(pt)
             
             pts = str(pts)
-            #print('what will be written : ', pts)
-            #print(pt)
             f.write(pts)
             f.write('\n')
-
 
         """
         print(cr.shape[0])
@@ -54,153 +45,88 @@ def SaveData(cr, pts1, pts2):
         cr = cv2.resize(cr, (320,240), interpolation = cv2.INTER_AREA) 
         """
 
-        """cv2.circle(test, (int(line), int(y)), 1, (255,0,0),1 )
-
-    
-        for nb_line, line in enumerate(cr) : #= cr[0] 
-            x = np.where(line>0)
-            pt = []
-            for x_sing in x[0] : 
-                #pt.append((x_sing, nb_line))
-                pt.append((x_sing, nb_line))
-            pt = str(pt)
-            #print(pt)
-            f.write(pt)
-            f.write('\n')"""
-
-
-
     return cr
 
-def LoadGroundTruth(name_images, imageHeight = 240, imageWidth = 320):
+def LoadGroundTruth(name_images, imageHeight = 240, imageWidth = 320, nb_crop = 4):
 
-    GroundTruthLink = '/home/roxane/Desktop/M3_2022/crop_dataset_annoted/GT data/crop_row_023.crp' #replace by name_images[0]
+    GroundTruthLink = '/home/roxane/Desktop/M3_2022/crop_dataset_annoted/GT data/crop_row_095.crp' #replace by name_images[0].crp and not .jpg
     imagePath = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines/'
     halfWidth = imageWidth/2;
-    name_temp = 'crop_row_023.JPG'
-    print(os.path.join(imagePath, name_temp)) # name_images[0]))
-    GTImage = cv2.imread(os.path.join(imagePath, name_temp)) #+ .jpg??
-    
+    GTImage = cv2.imread(os.path.join(imagePath, name_images)) #+ .jpg??
+
     with open (GroundTruthLink, 'r') as f:
         cv = [row[0] for row in csv.reader(f,delimiter='\t')]
     with open (GroundTruthLink, 'r') as f:
         dv = [row[1] for row in csv.reader(f,delimiter='\t')]
-        #first image row where crop rows are present
-    v0 = imageHeight - np.shape(dv)[0] + 1
+    v0 = imageHeight - np.shape(dv)[0] + 1 #first image row where crop rows are present
 
-    cop = np.copy(GTImage)
+    array_GT = np.zeros((imageHeight-v0, 4))
 
     for v in range(v0, imageHeight):
         center_dist = int(float(cv[v-v0]))
         spacing = int(float(dv[v-v0]))
-
-
-        #print(v,halfWidth + c_int)
-        dist_to_center = int(halfWidth + center_dist)
-        #c_tot_2 = int(halfWidth + c_int - d_int)
-        p1 = (center_dist, v)
-        dist_x = center_dist
-
-        #TODO : stop doing it manually, implement it in the argument with nb rows 
+        dist_x = halfWidth + center_dist
+        cv2.circle(GTImage, (int(dist_x), v), 1, (255,0,0), 1)
         while(dist_x>0):
             dist_x = dist_x - spacing
-            cv2.circle(cop, (dist_x,v), 1, (255,0,0), 1)
-            #remove spacing from p1
+            pt = (int(dist_x), v)
+            cv2.circle(GTImage, pt, 1, (255,0,0), 1)
+        
+        dist_x = halfWidth + center_dist
         while(dist_x<imageWidth):
             dist_x = dist_x + spacing
-            cv2.circle(cop, (dist_x,v), 1, (255,0,0), 1)
+            pt = (int(dist_x),v)
+            cv2.circle(GTImage, pt, 1, (255,0,0), 1)
 
-            #add spacing to p1
+        array_GT[(v-v0), 0] = halfWidth + center_dist
+        array_GT[(v-v0), 1] = halfWidth + center_dist + 2*spacing
+        array_GT[(v-v0), 2] = halfWidth + center_dist + 3* spacing
+        array_GT[(v-v0), 3] = halfWidth + center_dist + 4 *spacing
+    
+        #TODO : how to choose that automaticlly and not manually ??
+        #  -->prob take all of the row of the ground truth and then after it will not matter and be replaced with 0
+    print(array_GT[24, :])
 
 
-        """p2 = (center_dist + spacing, v)
-        p3 = (center_dist - spacing, v)"""
-        #print(p1,p2,p3)
-
-        #cv2.imshow('basic image : ', cop)
-        #cv2.waitKey(0)
-        #cv2.destroyAllWindows()
-        #p4 = (c_tot_1 + 2*d_int, v)
-
-        """cv2.circle(cop, p1, 1, (255,0,0), 1)
-        cv2.circle(cop, p2, 1, (0,255,0), 1)
-        cv2.circle(cop, p3, 1, (0,0, 255), 1)"""
-        #cv2.circle(cop, p4, 1, (0,255, 255), 1)
-
-    cv2.imshow('ground truth image : ', cop)
+    cv2.imshow('ground truth image : ', GTImage)
     cv2.waitKey(0)
-    cv2.destroyAllWindows()
+
+    return GTImage, cv, dv, v0, array_GT
 
 
-    return cop, cv, dv, v0
-
-
-def evaluate_results(cv,dv, v0, imageHeight = 240, imageWidth = 320, nb_crop_row=3):
+def evaluate_results(cv, dv, v0, array_GT, imageHeight = 240, imageWidth = 320, nb_crop_row = 4):
     halfWidth = imageWidth/2;
 
     path_my_results = '/home/roxane/Desktop/M3_2022/Caterra_2912/Caterra/CropsPersonnalResults.txt'
     with open (path_my_results, 'r') as f:
         cv_myresult = [row for row in csv.reader(f)]
-        #print(len(cv_myresult))
+    
+    array_myresults = np.zeros((imageHeight,nb_crop_row*2))
 
-    array = np.zeros((imageHeight,nb_crop_row*2))
     for idx_line, line in enumerate(cv_myresult):
-        #print('line : ', len(line), line)
         for idx_row, row in enumerate(line) :
             if (idx_row<nb_crop_row*2) : 
                 b = int(row.strip(']').strip('[').strip(' (').strip(')'))
-                #print(b)
-                array[idx_line, idx_row] = b
+                array_myresults[idx_line, idx_row] = b
 
     m, sigma, score, test = [3, 0.2, 0, 0]
+    array_myresults = array_myresults[v0:,:]
+    array_myresults = array_myresults[:,1::2]
 
-    for v in range(v0, imageHeight):
-        c_GT = int(float(cv[v-v0]))
-        d_GT = int(float(dv[v-v0]))
+    print(array_myresults)
+    print(array_GT)
 
-        #print(v,halfWidth + c_GT)
-        for i in range(-1,2) : 
-            u = array[v][2*(i+1)] # int(halfWidth + c_GT) + i*d_GT  # array[v][2*(i+1)] #int(halfWidth + c_GT) + i*d_GT 
-            u_GT = int(halfWidth + c_GT) + i*d_GT
-            diff = u_GT-u
-            #print(diff)
-            test = test + diff
-            #print(u_GT, array[v][2*(i+1)])
-            t = pow((diff/(sigma*d_GT)),2)
-            #print(t)
-            s = max(1-t,0)
-            score = score + s
-    
-    score = score / (m*(imageHeight-v0))
-            
-    #mean = test/(3*(imageHeight-v0))
-    #precision = 100 - 100*(mean/imageWidth)
 
-    print('score : ', score, '\naverage precision : ')
+    score_crda = 0
 
-    return score, 0
-"""
-
-m, sigma, result, test = [3, 0.2, 0, 0]
-
-for v in range(v0, imageHeight):
-    c_GT = int(float(cv[v-v0]))
-    d_GT = int(float(dv[v-v0]))
-
-    #print(v,halfWidth + c_GT)
-    for i in range(-1,3) : 
-        u = array[v][2*(i+1)] # int(halfWidth + c_GT) + i*d_GT  # array[v][2*(i+1)] #int(halfWidth + c_GT) + i*d_GT 
-        u_GT = int(halfWidth + c_GT) + i*d_GT
-        diff = u_GT-u
-        test = test + diff
-        #print(u_GT, array[v][2*(i+1)])
-        t = pow((diff/(sigma*d_GT)),2)
-        s = max(1-t,0)
-        result = result + s
-        
-mean = test/(3*(imageHeight-v0))
-prec = 100*(mean/imageWidth)
-print('score : ', result, '\naverage precision : ', 100 - prec, '%')"""
-
+    for v in range(array_GT.shape[0]):
+        d_v = int(float(dv[v]))
+        for i in range(nb_crop_row):
+            for j in range(nb_crop_row):
+                s = max(1-(pow(((array_GT[v,i] - array_myresults[v,j])/(sigma*d_v)),2)),0)
+                score_crda = score_crda + s
+    score_crda = score_crda/(array_GT.shape[0]*nb_crop_row)
+    print('score : ', score_crda)
+    return score_crda, 0
 
 

@@ -3,6 +3,7 @@ import cv2
 import PerImageProcessing
 import MaskingProcess
 import Evaluation
+import random
 
 
 VID = 0
@@ -53,18 +54,17 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
                     cv2.waitKey(0)
                     cv2.destroyAllWindows()
             
-    print('point describing crop before evaluation : ', pts1, pts2)
+    #print('point describing crop before evaluation : ', pts1, pts2)
     stage = FINAL_PROCESS
 
     if stage == FINAL_PROCESS : #save data and evaluate it 
         print('...processing done!')
         if(mode ==SING_IMG):
             crop_only = Evaluation.SaveData(img_crops_only, pts1, pts2)
-            cop, cv, dv, v0 = Evaluation.LoadGroundTruth(name_images)
-            score, precision = Evaluation.evaluate_results(cv, dv, v0)
+            cop, cv, dv, v0, array_GT = Evaluation.LoadGroundTruth(name_images)
+            score, precision = Evaluation.evaluate_results(cv, dv, v0, array_GT)
 
-            cv2.imshow('img : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
-            cv2.imshow('crop_only', crop_only)
+            cv2.imshow('My Results : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
             cv2.waitKey(0)
             if cv2.waitKey(1) == ord('q'):
                 cv2.destroyAllWindows()
@@ -73,11 +73,8 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
 
 
 if __name__ == "__main__":
-
     sky_on = 1
     mode = SING_IMG
-
-
     #first, get the name of the files we are going to analyze
     if (mode == VID):
         #distinguer entre mode video et mode single image?
@@ -87,11 +84,10 @@ if __name__ == "__main__":
         nb_row = 5
         vp_on = 0
 
-
     if (mode == SING_IMG): 
         print('sing img')
         imgs_folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines'
-        name_images = 'crop_row_023.JPG' #crop_row_001, crop_row_020, crop_row_053
+        name_images = 'crop_row_095.JPG' #crop_row_001, crop_row_020, crop_row_053
         #imgs_folder = '/home/roxane/Desktop/M3_2022/crop_dataset/'
         #name_images = 'crop_row_001.JPG'
         sky_on = 0
