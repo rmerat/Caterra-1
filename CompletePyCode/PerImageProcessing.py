@@ -30,7 +30,7 @@ def Initial_Process(img, nb_row = 4, sky = 0):
     best_mask_median, col_best_mask = MaskingProcess.veg_segmentation(img, img_no_sky)
     best_mask_median_edge = cv2.Canny(best_mask_median,100,200)
 
-    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate = MaskingProcess.keep_mask_max_acc_lines(best_mask_median_edge, img_no_sky, nb_row)
+    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_median_edge, img_no_sky, nb_row)
 
     vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, best_mask_median_edge))
 
@@ -40,6 +40,34 @@ def Initial_Process(img, nb_row = 4, sky = 0):
     arr_mask = check_equidistance(arr_mask)
 
     return best_mask_evaluate, arr_mask, col_best_mask, vp_pt
+
+def eliminate_outlier_line(pts1,pts2, vp_point, th_acc, r_acc):
+
+    new_line = []
+    """
+    # NumPy array of lines, where each row represents a line defined by two points (x1, y1, x2, y2)
+    lines = tot
+
+    # Given point
+    point = (193, -35)
+
+    # Initialize a variable to store the farthest distance
+    farthest_distance = 0
+
+    # Iterate through the lines and find the farthest one from the given point
+    for line in lines:
+        x1, y1, x2, y2 = line
+        # Calculate the distance from the point to the line
+        distance = abs((y2 - y1) * point[0] - (x2 - x1) * point[1] + x2 * y1 - y2 * x1) / np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
+        if distance > farthest_distance:
+            farthest_distance = distance
+            farthest_line = line
+    """
+
+    #recalculate VP -->maybe put threshold on mean distance to VP?
+
+
+    return pts1,pts2, th_acc, r_acc#, best_mask_evaluate, arr_mask
 
 def Speed_Process(img, arr_mask, col_best_mask, vp_pt, nb_row = 4,  sky_on = 0):
 

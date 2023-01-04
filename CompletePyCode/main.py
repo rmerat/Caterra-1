@@ -28,6 +28,9 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
             print('initial process...')
             hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(img, nb_row = nb_row, sky = sky)
             height_original = images[0].shape[0]
+            cv2.imshow('img hough_img: ', hough_img)
+
+            cv2.waitKey(0)
             height, _, = arr_mask[0].shape
             stage = SPEED_PROCESS
             print('...speed process...')
@@ -51,6 +54,8 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
                         break   
                 if(mode == SING_IMG):
                     cv2.imshow('crop only : ', img_crops_only)
+                    cv2.imshow('img annotated: ', img_annotated)
+
                     cv2.waitKey(0)
                     cv2.destroyAllWindows()
             
@@ -91,8 +96,9 @@ if __name__ == "__main__":
         #imgs_folder = '/home/roxane/Desktop/M3_2022/crop_dataset/'
         #name_images = 'crop_row_001.JPG'
         sky_on = 0
-        nb_row = 4
-        vp_on = 1
+        nb_row = 8
+        vp_on = 0
+
 
 
     #open and resize images for consistency --> returns img in rgb format

@@ -253,6 +253,8 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
     r_acc = []
     threshold_acc = []
     mask = []
+    pts1 = []
+    pts2 = []
 
     for i in range(crop_nb):
         mask_single_crop = np.zeros_like(best_mask_edge)
@@ -275,15 +277,27 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
         x0 = a * r
         y0 = b * r
         p1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
+        pts1.append(p1)
         p2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
+        pts2.append(p2)
+
 
         cv2.line(best_mask_edge_copy, p1, p2, (0,0,0), band_width)
         cv2.line(best_mask_evaluate, p1, p2, (255,0,0), 3)
         cv2.line(img_no_sky_copy, p1, p2, (255,0,0), 3)
         cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
         mask.append(mask_single_crop)
+    
+        pts1,pts2, th_acc, r_acc = check_outliers_crop(pts1,pts2, th_acc, r_acc)
 
-    return mask, th_acc, r_acc, threshold_acc, best_mask_evaluate
+    return mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1,pts2
+
+def check_outliers_crop(pts1,pts2, th_acc, r_acc):
+
+    print(pts1)
+    print(pts2)
+
+    return pts1,pts2, th_acc, r_acc
 
 def VP_detection(th_acc, r_acc, threshold_acc,img_no_sky_copy ): 
     #VP detection 

@@ -60,7 +60,7 @@ def LoadGroundTruth(name_images, imageHeight = 240, imageWidth = 320, nb_crop = 
         dv = [row[1] for row in csv.reader(f,delimiter='\t')]
     v0 = imageHeight - np.shape(dv)[0] + 1 #first image row where crop rows are present
 
-    array_GT = np.zeros((imageHeight-v0, 4))
+    array_GT = np.zeros((imageHeight-v0, 11))
 
     for v in range(v0, imageHeight):
         center_dist = int(float(cv[v-v0]))
@@ -78,10 +78,14 @@ def LoadGroundTruth(name_images, imageHeight = 240, imageWidth = 320, nb_crop = 
             pt = (int(dist_x),v)
             cv2.circle(GTImage, pt, 1, (255,0,0), 1)
 
-        array_GT[(v-v0), 0] = halfWidth + center_dist
+        for i in range(6):
+            array_GT[(v-v0),5 + i] = halfWidth + center_dist + i*spacing
+            array_GT[(v-v0),5 - i] = halfWidth + center_dist - i*spacing
+
+        """array_GT[(v-v0), 0] = halfWidth + center_dist
         array_GT[(v-v0), 1] = halfWidth + center_dist + 2*spacing
         array_GT[(v-v0), 2] = halfWidth + center_dist + 3* spacing
-        array_GT[(v-v0), 3] = halfWidth + center_dist + 4 *spacing
+        array_GT[(v-v0), 3] = halfWidth + center_dist + 4 *spacing"""
     
         #TODO : how to choose that automaticlly and not manually ??
         #  -->prob take all of the row of the ground truth and then after it will not matter and be replaced with 0
@@ -113,15 +117,15 @@ def evaluate_results(cv, dv, v0, array_GT, imageHeight = 240, imageWidth = 320, 
     array_myresults = array_myresults[v0:,:]
     array_myresults = array_myresults[:,1::2]
 
-    print(array_myresults)
-    print(array_GT)
+    #print(array_myresults)
+    #print(array_GT)
 
 
     score_crda = 0
 
     for v in range(array_GT.shape[0]):
         d_v = int(float(dv[v]))
-        for i in range(nb_crop_row):
+        for i in range(array_GT.shape[1]):
             for j in range(nb_crop_row):
                 s = max(1-(pow(((array_GT[v,i] - array_myresults[v,j])/(sigma*d_v)),2)),0)
                 score_crda = score_crda + s
