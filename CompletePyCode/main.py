@@ -32,27 +32,19 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
             print('...speed process...')
         
         if stage == SPEED_PROCESS: #quick, use of ransac 
-            #print('...speed process...')
 
-            #print('...speed process...')
-            #print(idx, 'vp : ', vp_pt)
             img = img[height_original-height:,:,:]
             arr_mask, img_annotated, vp_pt, cond_speed, img_crops_only, pts1, pts2 = PerImageProcessing.speed_process_lines(img, col_best_mask, arr_mask, vp_pt, vp_on=vp_on)
             
             if(cond_speed==0):
                 print('back to ini!')
                 stage = INI_PROCESS
-            else : 
-            #img_annotated = img
-            #vp point to recaulculate 
-            # img_annotated, arr_mask = PerImageProcessing.Speed_Process(img, arr_mask, col_best_mask, vp_pt)
+            else :
                 imgs_annotated.append(img_annotated)
                 imgs_crops_only.append(img_crops_only)
             
                 if(mode ==VID): 
                     cv2.imshow('vid :q ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
-                    #cv2.imshow('no annotation', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-
                     if cv2.waitKey(1) == ord('q'):
                         cv2.destroyAllWindows() 
                         break   
@@ -61,20 +53,15 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
                     cv2.waitKey(0)
                     cv2.destroyAllWindows()
             
-    
+    print('point describing crop before evaluation : ', pts1, pts2)
     stage = FINAL_PROCESS
 
     if stage == FINAL_PROCESS : #save data and evaluate it 
         print('...processing done!')
-
-        """data = Evaluation.SaveData(crops_only)
-        #TODO:implement evaluation """
         if(mode ==SING_IMG):
             crop_only = Evaluation.SaveData(img_crops_only, pts1, pts2)
             cop, cv, dv, v0 = Evaluation.LoadGroundTruth(name_images)
             score, precision = Evaluation.evaluate_results(cv, dv, v0)
-            #print(score, precision)
-
 
             cv2.imshow('img : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
             cv2.imshow('crop_only', crop_only)
@@ -108,12 +95,13 @@ if __name__ == "__main__":
         #imgs_folder = '/home/roxane/Desktop/M3_2022/crop_dataset/'
         #name_images = 'crop_row_001.JPG'
         sky_on = 0
-        nb_row = 1
+        nb_row = 4
         vp_on = 1
 
 
     #open and resize images for consistency --> returns img in rgb format
     images = MaskingProcess.obtain_images(name_images,imgs_folder, mode)
+    print(images[0].shape)
 
     # Main Detection function 
     if images is not None : 

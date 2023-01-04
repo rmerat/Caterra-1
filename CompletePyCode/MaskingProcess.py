@@ -359,21 +359,13 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         temp = np.copy(masked_images_i)
         y0, x0 = model.params[0]#.astype(int)
         t1, t0 = model.params[1]
-        m = t1/t0
-        #print(m)
-        #ADD CONDITION ON M
-        x2 = (x0 + 500)
-        y2 = (y0 + 500*m)
-        x1 = (x0 - 500)
-        y1 = (y0 - 500*m)
-        p1 = [int(x1),int(y1)]
-        p2 = [int(x2),int(y2)]
-    """else : 
-        p1 = [0,0]
-        p2 = [0, 1]
-        m  = 0"""
+        m = -t1/t0
+        k = (img_no_sky.shape[0]-y0)/m
+        p0 = [int(x0),int(y0)]
+        p1 = [int(x0 - k), int(y0 + k*m)]
 
-    return p1, p2, m, cond_speed
+
+    return p0, p1, m, cond_speed
 
 def remove_double(p1, p2, m, acc_m, masked_image, wd):
     cond_double = 0
@@ -429,6 +421,7 @@ def squared_distance_to_line(point, line_point1, line_point2):
 
 def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
 
+    #regarder si y a pas fonction toute faite pour trouver les difference 
     model = None 
     nb_cr = len(arr_mask)
     data = np.zeros(((nb_cr+1),2)) #+1 for the VP point 

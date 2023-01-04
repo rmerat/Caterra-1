@@ -5,16 +5,57 @@ import csv
 import numpy as np
 
 def SaveData(cr, pts1, pts2):
+    acc_m = []
+    acc_b = []
 
     print('point ligne 0 : ', pts1[0], pts2[0])
-    cv2.imshow('cr : ', cr)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    test = np.zeros_like(cr)
+    for p1, p2 in zip(pts1, pts2):
+        x1,y1 = p1
+        x2,y2 = p2
+        #m = (y2-y1) / (x2-x1)
+        #b = y1 - m* x1
 
-    cr = cv2.resize(cr, (320,240), interpolation = cv2.INTER_AREA) 
+        m = (x2-x1) / (y2-y1)
+        b = x1 - m*y1
 
+        #print('equation of line : y = ', m, '*x + ', b)
+        acc_m.append(m)
+        acc_b.append(b)
+    
+    #print('acc  :', acc_m, 'acc b : ', acc_b)
 
     with open('CropsPersonnalResults.txt', 'w') as f:
+        for line in range(cr.shape[0]):
+            pts = []
+            for m,b in zip(acc_m, acc_b):
+                pt = (line, int(m * line + b))
+                pts.append(pt)
+            
+            pts = str(pts)
+            #print('what will be written : ', pts)
+            #print(pt)
+            f.write(pts)
+            f.write('\n')
+
+
+        """
+        print(cr.shape[0])
+        for line in range(cr.shape[0]):
+            print(line)
+            for m,b in zip(acc_m, acc_b):
+                y = m * line + b
+                cv2.circle(test, (int(line), int(y)), 1, (255,0,0),1 )
+
+        cv2.imshow('cr : ', test )
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        cr = cv2.resize(cr, (320,240), interpolation = cv2.INTER_AREA) 
+        """
+
+        """cv2.circle(test, (int(line), int(y)), 1, (255,0,0),1 )
+
     
         for nb_line, line in enumerate(cr) : #= cr[0] 
             x = np.where(line>0)
@@ -25,7 +66,7 @@ def SaveData(cr, pts1, pts2):
             pt = str(pt)
             #print(pt)
             f.write(pt)
-            f.write('\n')
+            f.write('\n')"""
 
 
 
@@ -50,18 +91,30 @@ def LoadGroundTruth(name_images, imageHeight = 240, imageWidth = 320):
     cop = np.copy(GTImage)
 
     for v in range(v0, imageHeight):
-        c_int = int(float(cv[v-v0]))
-        d_int = int(float(dv[v-v0]))
+        center_dist = int(float(cv[v-v0]))
+        spacing = int(float(dv[v-v0]))
+
 
         #print(v,halfWidth + c_int)
-        c_tot_1 = int(halfWidth + c_int)
+        dist_to_center = int(halfWidth + center_dist)
         #c_tot_2 = int(halfWidth + c_int - d_int)
-
+        p1 = (center_dist, v)
+        dist_x = center_dist
 
         #TODO : stop doing it manually, implement it in the argument with nb rows 
-        p1 = (c_tot_1, v)
-        p2 = (c_tot_1 + d_int, v)
-        p3 = (c_tot_1 - d_int, v)
+        while(dist_x>0):
+            dist_x = dist_x - spacing
+            cv2.circle(cop, (dist_x,v), 1, (255,0,0), 1)
+            #remove spacing from p1
+        while(dist_x<imageWidth):
+            dist_x = dist_x + spacing
+            cv2.circle(cop, (dist_x,v), 1, (255,0,0), 1)
+
+            #add spacing to p1
+
+
+        """p2 = (center_dist + spacing, v)
+        p3 = (center_dist - spacing, v)"""
         #print(p1,p2,p3)
 
         #cv2.imshow('basic image : ', cop)
@@ -69,9 +122,9 @@ def LoadGroundTruth(name_images, imageHeight = 240, imageWidth = 320):
         #cv2.destroyAllWindows()
         #p4 = (c_tot_1 + 2*d_int, v)
 
-        cv2.circle(cop, p1, 1, (255,0,0), 1)
+        """cv2.circle(cop, p1, 1, (255,0,0), 1)
         cv2.circle(cop, p2, 1, (0,255,0), 1)
-        cv2.circle(cop, p3, 1, (0,0, 255), 1)
+        cv2.circle(cop, p3, 1, (0,0, 255), 1)"""
         #cv2.circle(cop, p4, 1, (0,255, 255), 1)
 
     cv2.imshow('ground truth image : ', cop)
@@ -110,6 +163,7 @@ def evaluate_results(cv,dv, v0, imageHeight = 240, imageWidth = 320, nb_crop_row
             u = array[v][2*(i+1)] # int(halfWidth + c_GT) + i*d_GT  # array[v][2*(i+1)] #int(halfWidth + c_GT) + i*d_GT 
             u_GT = int(halfWidth + c_GT) + i*d_GT
             diff = u_GT-u
+            #print(diff)
             test = test + diff
             #print(u_GT, array[v][2*(i+1)])
             t = pow((diff/(sigma*d_GT)),2)

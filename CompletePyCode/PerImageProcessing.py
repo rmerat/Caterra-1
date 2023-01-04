@@ -17,6 +17,7 @@ import os
 import MaskingProcess
 
 
+
 def Initial_Process(img, nb_row = 4, sky = 0):
 
     #Cut off sky
@@ -143,6 +144,6 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
     #for debugging : add drawing of VP point 
 
     #cv2.imshow('ransac lines : ', img_ransac_lines)
+    print('point return to describe lines : ', pts1, pts2)
 
     return arr_mask_new, img_ransac_lines, vp_pt, 1, crops_only, pts1, pts2
-
