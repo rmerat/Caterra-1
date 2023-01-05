@@ -191,7 +191,7 @@ def veg_segmentation(img, img_no_sky):
     best_mask = mask_vegetation(img_lab, col_best_mask_lab)
     best_mask_median = cv2.medianBlur(best_mask,3)
     
-    return best_mask_median, col_best_mask
+    return best_mask_median, best_mask, col_best_mask
 
 def hough_line_improved(mask, angle_acc):
     """
@@ -247,8 +247,6 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
     img_no_sky_copy = np.copy(img_no_sky)
     band_width = int(img_no_sky.shape[1]/25)
 
-    #crop_nb = 3
-
     th_acc = []
     r_acc = []
     threshold_acc = []
@@ -281,21 +279,20 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
         p2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
         pts2.append(p2)
 
-
         cv2.line(best_mask_edge_copy, p1, p2, (0,0,0), band_width)
-        cv2.line(best_mask_evaluate, p1, p2, (255,0,0), 3)
+        cv2.line(best_mask_evaluate, p1, p2, (255,0,0), 3) #pb dans les dessin TODO:le regler 
         cv2.line(img_no_sky_copy, p1, p2, (255,0,0), 3)
         cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
         mask.append(mask_single_crop)
     
-        pts1,pts2, th_acc, r_acc = check_outliers_crop(pts1,pts2, th_acc, r_acc)
+        pts1, pts2, th_acc, r_acc = check_outliers_crop(pts1,pts2, th_acc, r_acc)
+        
 
-    return mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1,pts2
+    return mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2
 
 def check_outliers_crop(pts1,pts2, th_acc, r_acc):
 
-    print(pts1)
-    print(pts2)
+    print('check outliers crop function here')
 
     return pts1,pts2, th_acc, r_acc
 
@@ -330,6 +327,7 @@ def VP_detection(th_acc, r_acc, threshold_acc,img_no_sky_copy ):
 
 def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_mask_i, i):
 
+    print('i in apply ransac : ', i)
     mask_single_crop = np.zeros_like(img_no_sky)
     x,y = np.where(masked_images_i>0)
     data = np.column_stack([x, y])
@@ -344,28 +342,21 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
     #INITIALIATE COND SPEED??
     cond_speed = 0
 
-
-    #print('data : ', data.size)
-    #if (data.size<10):
-        #cv2.waitKey(20000)
-
-
     if(data.shape[0]>700):
         data = data[np.random.choice(data.shape[0], 500, replace=False), :]
 
     #put condition, if data to small, go to initial process!
-    if(data.shape[0]<50):
+    if(data.shape[0]<30):
         print(' mask that has no data : ', i)
         print(data.shape)
         #cv2.imshow('masked image i', masked_images_i)
         #cv2.imshow('best_mask', best_mask)
         #cv2.imshow('arr_mask_i', arr_mask_i)
         cond_speed = 0
-        p1 = [0,0]
-        p2 = [0, 1]
+        p0 = [0,0]
+        p1 = [0,1]
+        p2 = [0,2]
         m  = 0
-        #cv2.waitKey(0)
-        #cv2.destroyAllWindows()
 
     else : #(data.shape>10):
         cond_speed = 1
@@ -374,12 +365,20 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         y0, x0 = model.params[0]#.astype(int)
         t1, t0 = model.params[1]
         m = -t1/t0
-        k = (img_no_sky.shape[0]-y0)/m
+        k1 = (img_no_sky.shape[0]-y0)/m
+        k2 = -(y0)/m
+
+        p2 = [int(x0 - k2), int(y0 + k2*m)]
         p0 = [int(x0),int(y0)]
-        p1 = [int(x0 - k), int(y0 + k*m)]
+        p1 = [int(x0 - k1), int(y0 + k1*m)]
+
+        print('\n', i, ' :  k1, k2  : ', k1, k2, 'm : ', m)
+        print('x0,y0 : ', x0, y0,)
+        print('x1, y1 : ', p1)
+        print('x2,y2 : ', p2, '\n')
 
 
-    return p0, p1, m, cond_speed
+    return p1, p2, m, cond_speed
 
 def remove_double(p1, p2, m, acc_m, masked_image, wd):
     cond_double = 0

@@ -17,6 +17,9 @@ import os
 import MaskingProcess
 
 
+def find_hough_lines() : 
+
+    return 0
 
 def Initial_Process(img, nb_row = 4, sky = 0):
 
@@ -27,10 +30,19 @@ def Initial_Process(img, nb_row = 4, sky = 0):
     else : 
         img_no_sky = img
 
-    best_mask_median, col_best_mask = MaskingProcess.veg_segmentation(img, img_no_sky)
+    best_mask_median, best_mask_brut, col_best_mask = MaskingProcess.veg_segmentation(img, img_no_sky)
     best_mask_median_edge = cv2.Canny(best_mask_median,100,200)
+    best_mask_brut_edge = cv2.Canny(best_mask_brut,100,200)
 
-    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_median_edge, img_no_sky, nb_row)
+
+    cv2.imshow('best_mask_median_edge', best_mask_median_edge)
+    cv2.imshow('best_mask_brut', best_mask_brut)
+    cv2.imshow('vegetation segmentation',cv2.bitwise_and(img_no_sky, img_no_sky, mask = best_mask_brut))
+    cv2.imshow('best_mask_brut_edge', best_mask_brut_edge)
+
+
+
+    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_brut_edge, img_no_sky, nb_row)
 
     vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, best_mask_median_edge))
 
@@ -80,10 +92,6 @@ def Speed_Process(img, arr_mask, col_best_mask, vp_pt, nb_row = 4,  sky_on = 0):
     best_mask = MaskingProcess.mask_vegetation(img_lab, col_best_mask_lab)
     best_mask_median = cv2.medianBlur(best_mask,3)
 
-    #cv2.imshow('best_mask_median', best_mask_median)
-    #cv2.waitKey(1000)
-
-    #print(best_mask_median.shape)
     model = MaskingProcess.pattern_ransac(arr_mask, vp_pt, best_mask_median) 
 
 
@@ -111,8 +119,6 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
     best_mask = MaskingProcess.mask_vegetation(img_lab, col_best_mask_lab)
     #plt.imshow(mask_col)
     band_width = int(image.shape[1]/25)
-    #print('bw : ', band_width)
-    # mask_col_edge = cv2.Canny(mask_col,100,200) #add la cond sur le laplacien 
 
     pts1 = []
     pts2 = []
@@ -122,6 +128,7 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
     crops_only = np.zeros_like(image)
     #cr = np.zeros_like(best_mask)
     arr_mask_new = []
+
 
     
     for i in range(len(arr_mask)):
@@ -133,24 +140,13 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
     for i in range(len(arr_mask)): #for each row
         mask_single_crop = np.zeros_like(best_mask)
         cond = m = cond_horizon = cond_double = 0
-
-
-        """
-        p1 = [0, 100]
-        p2 = [100, 0]
-        m=0"""
-
-        #p1, p2, m = apply_ransac(image, masked_images[i], vp_pt, 0)
-
         
         while(cond_horizon*cond_double == 0 ): 
             p1, p2, m, cond_speed = MaskingProcess.apply_ransac(image, masked_images[i], vp_pt, vp_on, best_mask, arr_mask[i], i) #HERE JUST CHANGED 
             
             if (cond_speed==0): 
                 print('reinitialization')
-                #reinitialize(img_lab, col_best_mask_lab)
-                #p1, p2, m, cond_speed = MaskingProcess.apply_ransac(image, masked_images[i], vp_pt, 0, best_mask, arr_mask[i], i)
-                return arr_mask_new, img_ransac_lines, vp_pt, cond_speed, crops_only
+                return arr_mask_new, img_ransac_lines, vp_pt, cond_speed, crops_only, pts1, pts2
 
             
             masked_images[i], cond_horizon = MaskingProcess.remove_horizon(p1, p2, m, masked_images[i], band_width)
@@ -170,8 +166,5 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
 
     #TODO : put back : vp_pt = intersect_multiple_lines(pts1, pts2)
     #for debugging : add drawing of VP point 
-
-    #cv2.imshow('ransac lines : ', img_ransac_lines)
-    print('point return to describe lines : ', pts1, pts2)
 
     return arr_mask_new, img_ransac_lines, vp_pt, 1, crops_only, pts1, pts2

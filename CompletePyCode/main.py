@@ -23,7 +23,6 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
     stage = INI_PROCESS
 
     for idx, img in enumerate(images):
-        #print(idx, 'stage : ', stage)
         if stage == INI_PROCESS: #longer but needed to create initial mask of images 
             print('initial process...')
             hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(img, nb_row = nb_row, sky = sky)
@@ -39,9 +38,8 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
 
             img = img[height_original-height:,:,:]
             arr_mask, img_annotated, vp_pt, cond_speed, img_crops_only, pts1, pts2 = PerImageProcessing.speed_process_lines(img, col_best_mask, arr_mask, vp_pt, vp_on=vp_on)
-            
+           
             if(cond_speed==0):
-                print('back to ini!')
                 stage = INI_PROCESS
             else :
                 imgs_annotated.append(img_annotated)
@@ -59,16 +57,14 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
                     cv2.waitKey(0)
                     cv2.destroyAllWindows()
             
-    #print('point describing crop before evaluation : ', pts1, pts2)
     stage = FINAL_PROCESS
 
     if stage == FINAL_PROCESS : #save data and evaluate it 
         print('...processing done!')
         if(mode ==SING_IMG):
             crop_only = Evaluation.SaveData(img_crops_only, pts1, pts2)
-            cop, cv, dv, v0, array_GT = Evaluation.LoadGroundTruth(name_images)
-            score, precision = Evaluation.evaluate_results(cv, dv, v0, array_GT)
-
+            cop, cv, dv, v0, array_GT = Evaluation.LoadGroundTruth(name_images, img_annotated)
+            score, precision = Evaluation.evaluate_results(cv, dv, v0, array_GT, nb_crop_row=nb_row)
             cv2.imshow('My Results : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
             cv2.waitKey(0)
             if cv2.waitKey(1) == ord('q'):
@@ -92,18 +88,17 @@ if __name__ == "__main__":
     if (mode == SING_IMG): 
         print('sing img')
         imgs_folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines'
-        name_images = 'crop_row_095.JPG' #crop_row_001, crop_row_020, crop_row_053
+        name_images = 'crop_row_008.jpg' #crop_row_001, crop_row_020, crop_row_053
         #imgs_folder = '/home/roxane/Desktop/M3_2022/crop_dataset/'
         #name_images = 'crop_row_001.JPG'
         sky_on = 0
-        nb_row = 8
-        vp_on = 0
+        nb_row = 5
+        vp_on = 1
 
 
 
     #open and resize images for consistency --> returns img in rgb format
     images = MaskingProcess.obtain_images(name_images,imgs_folder, mode)
-    print(images[0].shape)
 
     # Main Detection function 
     if images is not None : 
