@@ -78,7 +78,6 @@ def LoadGroundTruth(name_images, imagePerso, imageHeight = 240, imageWidth = 320
 
     cv2.imshow('ground truth image : ', GTImage)
     cv2.imshow('ground truth + personal result image : ', imagePerso)
-    cv2.waitKey(0)
 
     return GTImage, cv, dv, v0, array_GT
 
@@ -98,7 +97,7 @@ def evaluate_results(cv, dv, v0, array_GT, imageHeight = 240, imageWidth = 320, 
                 b = int(row.strip(']').strip('[').strip(' (').strip(')'))
                 array_myresults[idx_line, idx_row] = b
 
-    m, sigma, score, test = [3, 0.2, 0, 0]
+    m, sigma, score, test = [3, 0.3, 0, 0]
     array_myresults = array_myresults[v0:,:]
     array_myresults = array_myresults[:,1::2]
 

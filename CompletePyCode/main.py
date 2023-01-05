@@ -26,7 +26,8 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
         if stage == INI_PROCESS: #longer but needed to create initial mask of images 
             print('initial process...')
             hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(img, nb_row = nb_row, sky = sky)
-            height_original = images[0].shape[0]
+            if (idx == 0):
+                height_original = images[0].shape[0]
             cv2.imshow('img hough_img: ', hough_img)
 
             cv2.waitKey(0)
@@ -38,12 +39,17 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
 
             img = img[height_original-height:,:,:]
             arr_mask, img_annotated, vp_pt, cond_speed, img_crops_only, pts1, pts2 = PerImageProcessing.speed_process_lines(img, col_best_mask, arr_mask, vp_pt, vp_on=vp_on)
-           
+           #vp_point = fct()
             if(cond_speed==0):
                 stage = INI_PROCESS
             else :
                 imgs_annotated.append(img_annotated)
                 imgs_crops_only.append(img_crops_only)
+                r_acc, th_acc,threshold_acc = MaskingProcess.get_r_theta(pts1, pts2)
+
+                vp_pt_new = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc))
+                print(vp_pt_new)
+
             
                 if(mode ==VID): 
                     cv2.imshow('vid :q ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
@@ -55,7 +61,6 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
                     cv2.imshow('img annotated: ', img_annotated)
 
                     cv2.waitKey(0)
-                    cv2.destroyAllWindows()
             
     stage = FINAL_PROCESS
 
@@ -75,7 +80,7 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
 
 if __name__ == "__main__":
     sky_on = 1
-    mode = SING_IMG
+    mode = VID
     #first, get the name of the files we are going to analyze
     if (mode == VID):
         #distinguer entre mode video et mode single image?
@@ -83,16 +88,14 @@ if __name__ == "__main__":
         name_images = MaskingProcess.obtain_name_images(imgs_folder)
         sky_on = 1
         nb_row = 5
-        vp_on = 0
+        vp_on = 1
 
     if (mode == SING_IMG): 
         print('sing img')
         imgs_folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines'
-        name_images = 'crop_row_008.jpg' #crop_row_001, crop_row_020, crop_row_053
-        #imgs_folder = '/home/roxane/Desktop/M3_2022/crop_dataset/'
-        #name_images = 'crop_row_001.JPG'
+        name_images = 'crop_row_256.JPG' #crop_row_001, crop_row_020, crop_row_053
         sky_on = 0
-        nb_row = 5
+        nb_row = 6
         vp_on = 1
 
 

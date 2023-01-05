@@ -285,7 +285,7 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
         cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
         mask.append(mask_single_crop)
     
-        pts1, pts2, th_acc, r_acc = check_outliers_crop(pts1,pts2, th_acc, r_acc)
+    pts1, pts2, th_acc, r_acc = check_outliers_crop(pts1,pts2, th_acc, r_acc)
         
 
     return mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2
@@ -296,7 +296,7 @@ def check_outliers_crop(pts1,pts2, th_acc, r_acc):
 
     return pts1,pts2, th_acc, r_acc
 
-def VP_detection(th_acc, r_acc, threshold_acc,img_no_sky_copy ): 
+def VP_detection(th_acc, r_acc, threshold_acc ): 
     #VP detection 
     #ADD COND THAT INTERSEECTON MUST BE IN A RADIUS TO AVOID OUTLIERS 
     # => or KMEAN with K = 2?
@@ -317,7 +317,7 @@ def VP_detection(th_acc, r_acc, threshold_acc,img_no_sky_copy ):
     b = np.array([D,E])
     x0,y0 = np.linalg.solve(M,b).astype(int)
 
-    cv2.circle(img_no_sky_copy, (x0, y0), 10, (255,255,255), 5)
+    #cv2.circle(img_no_sky_copy, (x0, y0), 10, (255,255,255), 5)
     #cv2.imshow('VP drawned : ', img_no_sky_copy)
     #cv2.waitKey(1000)
 
@@ -327,7 +327,7 @@ def VP_detection(th_acc, r_acc, threshold_acc,img_no_sky_copy ):
 
 def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_mask_i, i):
 
-    print('i in apply ransac : ', i)
+    #print('i in apply ransac : ', i)
     mask_single_crop = np.zeros_like(img_no_sky)
     x,y = np.where(masked_images_i>0)
     data = np.column_stack([x, y])
@@ -372,10 +372,10 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         p0 = [int(x0),int(y0)]
         p1 = [int(x0 - k1), int(y0 + k1*m)]
 
-        print('\n', i, ' :  k1, k2  : ', k1, k2, 'm : ', m)
+        """print('\n', i, ' :  k1, k2  : ', k1, k2, 'm : ', m)
         print('x0,y0 : ', x0, y0,)
         print('x1, y1 : ', p1)
-        print('x2,y2 : ', p2, '\n')
+        print('x2,y2 : ', p2, '\n')"""
 
 
     return p1, p2, m, cond_speed
@@ -390,10 +390,11 @@ def remove_double(p1, p2, m, acc_m, masked_image, wd):
             #print('diff m', m - m_others)
 
             if (abs(m-m_others)<0.1): #if angle already detected 
-                #print('diff m', m - m_others)
+                print('double detected', m, m_others)
 
                 cv2.line(masked_image, p1, p2, (0,0,0), wd)
                 cond_double = 0
+                return masked_image, cond_double
                 #print('diff : ', m, m_others)
             
             else : #pas une bonne idée : une crop pourrait en remplacer une autre 
@@ -472,18 +473,18 @@ def pattern_ransac(arr_mask, vp_point, img, max_iterations=100, threshold=2000):
             for x_x, y_y in zip(x,y):
                 p3 = np.array(x_x,y_y)
                 err = squared_distance_to_line(p3, p1, p2)
-                print(err)
+                #print(err)
 
                 if abs(err)<threshold:
                     nb_inliers = nb_inliers + 1
         
 
         if nb_inliers>best_nb_inliers:
-            print('new best nb inliers : ', best_nb_inliers)
+            #print('new best nb inliers : ', best_nb_inliers)
             best_nb_inliers = nb_inliers
             model = list_cr_lines
     
-    print('nb inliers : ', nb_inliers, 'out of ', nb_cr * len(x))
+    #print('nb inliers : ', nb_inliers, 'out of ', nb_cr * len(x))
     
     return model
 
@@ -571,3 +572,22 @@ def cut_image_from_mask(grad_sky,img):
     
     return img_new
 
+def get_r_theta(pts1, pts2):
+    r_acc = []
+    th_acc = []
+    thr_acc = []
+
+    for p1, p2 in zip(pts1,pts2):
+        x1 = p1[0]
+        y1 = p1[1]
+        x2 = p2[0]
+        y2 = p2[1]
+
+        x1, y1, x2, y2 = map(float, (x1, y1, x2, y2))
+        theta = math.atan2(y2 - y1, x2 - x1)
+        rho = x1 * math.cos(theta) + y1 * math.sin(theta)
+        r_acc.append(rho)
+        th_acc.append(theta)
+        thr_acc.append(1)
+
+    return r_acc, th_acc, thr_acc
