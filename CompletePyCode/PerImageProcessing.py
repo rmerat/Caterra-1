@@ -35,16 +35,17 @@ def Initial_Process(img, nb_row = 4, sky = 0):
     best_mask_brut_edge = cv2.Canny(best_mask_brut,100,200)
 
 
-    cv2.imshow('best_mask_median_edge', best_mask_median_edge)
-    cv2.imshow('best_mask_brut', best_mask_brut)
-    cv2.imshow('vegetation segmentation',cv2.bitwise_and(img_no_sky, img_no_sky, mask = best_mask_brut))
-    cv2.imshow('best_mask_brut_edge', best_mask_brut_edge)
+    #cv2.imshow('best_mask_median_edge', best_mask_median_edge)
+    #cv2.imshow('best_mask_brut', best_mask_brut)
+    #cv2.imshow('vegetation segmentation',cv2.bitwise_and(img_no_sky, img_no_sky, mask = best_mask_brut))
+    #cv2.imshow('best_mask_brut_edge', best_mask_brut_edge)
+    #cv2.waitKey(0)
 
 
 
-    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_median_edge, img_no_sky, nb_row)
+    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_brut_edge, img_no_sky, nb_row)
 
-    vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc))
+    vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage=0))
 
     #cv2.imshow('after initial process', best_mask_evaluate)
     #cv2.waitKey(0)
@@ -147,16 +148,10 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
 
         masked_images[i], cond_horizon = MaskingProcess.remove_horizon(p1, p2, m, masked_images[i], band_width)
         masked_images[i], cond_double = MaskingProcess.remove_double(p1, p2, m, acc_m, masked_images[i], band_width)
-        #cond_horizon, cond_double = check_ransac_cond(p1,p2,m, acc_m)
+
         if (cond_horizon*cond_double==0):
             cond_speed = 0
-            print('still not met, cond : ', cond_speed)
-
             return arr_mask_new, img_ransac_lines, vp_pt, cond_speed, crops_only, pts1, pts2
-
-            #cv2.imshow('new with still bad cond : ', masked_images[i])
-
-
 
         """
         

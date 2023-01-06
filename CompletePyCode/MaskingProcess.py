@@ -48,9 +48,9 @@ def obtain_images(name_images, image_folder, mode):
             if img is not None : 
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 if (idx!=0): 
-                    img_small = img_resize(img_rgb)#, output_width=imgs[0].shape[0])
+                    img_small = img_resize(img_rgb, output_width = 500)#, output_width=imgs[0].shape[0])
                 if(idx==0) : 
-                    img_small = img_resize(img_rgb)#, output_width=img.shape[0])
+                    img_small = img_resize(img_rgb, output_width = 500)#, output_width=img.shape[0])
                 imgs.append(img_small)
 
     if mode == SING_IMG :
@@ -169,7 +169,7 @@ def mask_vegetation(img_lab, col_lab):
     output :
     """
     # Using inRange method, to create a mask
-    thr = [8,8,8] # before : 8 20 8 , TODO : maybe change  thr according to histogram ??
+    thr = [8,8,8] # 4,4,4 for vid? before : 8 20 8 , TODO : maybe change  thr according to histogram ??
     lower_col = col_lab - thr
     upper_col = col_lab + thr
     mask = cv2.inRange(img_lab, lower_col, upper_col)
@@ -296,10 +296,12 @@ def check_outliers_crop(pts1,pts2, th_acc, r_acc):
 
     return pts1,pts2, th_acc, r_acc
 
-def VP_detection(th_acc, r_acc, threshold_acc ): 
+def VP_detection(th_acc, r_acc, threshold_acc, stage ): 
+    #stage = 0 for ini process, 1 for speed process
     #VP detection 
     #ADD COND THAT INTERSEECTON MUST BE IN A RADIUS TO AVOID OUTLIERS 
     # => or KMEAN with K = 2?
+    # ceci arrondi vers le bas
 
     A = B = C = D = E = 0
 
@@ -311,19 +313,37 @@ def VP_detection(th_acc, r_acc, threshold_acc ):
         C = C + w*a*b
         D = D + w*a*r
         E = E + w*b*r
+        #print(a,b,A,B,C,D,E)
 
     M = np.array([[A,C],[C,B]])
     #print(np.linalg.det(M))
     b = np.array([D,E])
-    x0,y0 = np.linalg.solve(M,b).astype(int)
+    if(np.linalg.det(M)!=0): 
+        x0,y0 = np.linalg.solve(M,b).astype(int)
+    else : 
+        x0 = y0 = 0
+        print('sing matrix ')
+    
+    if (stage==0):
+        print('check outliers')
+        var_residual = 0
+        eps_acc = []
+        for t,r,w in zip(th_acc, r_acc, threshold_acc):
+            #p avec w --> here is not devided by V on  oth size, need to nnormalize it  
+            eps = r - (x0*np.cos(t) + y0 * np.sin(t)) #fct of 
+            eps_acc.append(eps)
+            #print('\n var : ', eps, (x0*np.cos(t) + y0 * np.sin(t)), r)
+            var_residual = var_residual + w*pow(eps,2)
+        var_residual = np.sqrt(var_residual)
+        print('eps and var res : ', eps, var_residual)
 
-    #cv2.circle(img_no_sky_copy, (x0, y0), 10, (255,255,255), 5)
-    #cv2.imshow('VP drawned : ', img_no_sky_copy)
-    #cv2.waitKey(1000)
+        for eps in eps_acc:
+            if abs(eps)>3*var_residual:
+                print('outliers')
 
-    print('VP is : ', x0, y0)
+        print('VP : ', x0, y0)
 
-    return x0,y0
+    return (x0+1),y0
 
 def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_mask_i, i):
 
@@ -346,8 +366,8 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         data = data[np.random.choice(data.shape[0], 500, replace=False), :]
 
     #put condition, if data to small, go to initial process!
-    if(data.shape[0]<30):
-        print(' mask that has no data : ', i)
+    if(data.shape[0]<20):
+        print(' not enough data in mask : ', i)
         print(data.shape)
         #cv2.imshow('masked image i', masked_images_i)
         #cv2.imshow('best_mask', best_mask)
@@ -365,8 +385,11 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         y0, x0 = model.params[0]#.astype(int)
         t1, t0 = model.params[1]
         m = -t1/t0
+        if(m==0):
+            print('slope = 0 : ', m)
         k1 = (img_no_sky.shape[0]-y0)/m
         k2 = -(y0)/m
+
 
         p2 = [int(x0 - k2), int(y0 + k2*m)]
         p0 = [int(x0),int(y0)]
@@ -390,9 +413,9 @@ def remove_double(p1, p2, m, acc_m, masked_image, wd):
             #print('diff m', m - m_others)
 
             if (abs(m-m_others)<0.1): #if angle already detected 
-                print('double detected', m, m_others)
+                print('pb : double detected', m, m_others)
 
-                cv2.line(masked_image, p1, p2, (0,0,0), wd)
+                #cv2.line(masked_image, p1, p2, (0,0,0), wd)
                 cond_double = 0
                 return masked_image, cond_double
                 #print('diff : ', m, m_others)
@@ -409,8 +432,11 @@ def remove_horizon(p1, p2, m, masked_image, bw):
     cond_horizon = 0
 
     if (abs(m)<thr):
-        cv2.line(masked_image, p1, p2, (0,0,0), bw)
+        #cv2.line(masked_image, p1, p2, (0,0,0), bw)
         #print('horizon detected', m)
+        cond_horizon = 0
+        print('pb : horizon detected')
+
 
     if (abs(m)>=thr):
         cond_horizon = 1
@@ -585,6 +611,10 @@ def get_r_theta(pts1, pts2):
 
         x1, y1, x2, y2 = map(float, (x1, y1, x2, y2))
         theta = math.atan2(y2 - y1, x2 - x1)
+        if (theta<-np.pi/2):
+            theta = theta + np.pi
+        theta = theta +np.pi/2
+
         rho = x1 * math.cos(theta) + y1 * math.sin(theta)
         r_acc.append(rho)
         th_acc.append(theta)
