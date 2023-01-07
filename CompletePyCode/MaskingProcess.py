@@ -279,13 +279,15 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
         p2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
         pts2.append(p2)
 
-        cv2.line(best_mask_edge_copy, p1, p2, (0,0,0), band_width)
+        #band_width = 40
+
+        cv2.line(best_mask_edge_copy, p1, p2, (0,0,0), int(band_width))#/2))
         cv2.line(best_mask_evaluate, p1, p2, (255,0,0), 3) #pb dans les dessin TODO:le regler 
         cv2.line(img_no_sky_copy, p1, p2, (255,0,0), 3)
         cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
         mask.append(mask_single_crop)
     
-    pts1, pts2, th_acc, r_acc = check_outliers_crop(pts1,pts2, th_acc, r_acc)
+    #pts1, pts2, th_acc, r_acc = check_outliers_crop(pts1,pts2, th_acc, r_acc)
         
 
     return mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2
@@ -304,6 +306,10 @@ def VP_detection(th_acc, r_acc, threshold_acc, stage ):
     # ceci arrondi vers le bas
 
     A = B = C = D = E = 0
+    #V = threshold_acc.sum()
+    V = sum(threshold_acc)
+    idx_outlier = None 
+    outlier = None
 
     for t,r,w in zip(th_acc, r_acc, threshold_acc):
         a = np.cos(t)
@@ -325,25 +331,31 @@ def VP_detection(th_acc, r_acc, threshold_acc, stage ):
         print('sing matrix ')
     
     if (stage==0):
-        print('check outliers')
+        #print('check outliers')
         var_residual = 0
         eps_acc = []
         for t,r,w in zip(th_acc, r_acc, threshold_acc):
             #p avec w --> here is not devided by V on  oth size, need to nnormalize it  
             eps = r - (x0*np.cos(t) + y0 * np.sin(t)) #fct of 
-            eps_acc.append(eps)
-            #print('\n var : ', eps, (x0*np.cos(t) + y0 * np.sin(t)), r)
-            var_residual = var_residual + w*pow(eps,2)
+            eps_acc.append(abs(eps))
+            var_residual = var_residual + (w/V)*pow(eps,2) #est ce que on veut vraiment prendre le w? 
+            # peut eetre que toutes les lignes deraient etre considere de la meme importance
+            #print('\n eps : ', eps, 'estimates rho : ', (x0*np.cos(t) + y0 * np.sin(t)), 'rho : ', r, 'var residual : ', var_residual)
+
         var_residual = np.sqrt(var_residual)
-        print('eps and var res : ', eps, var_residual)
+        #print('var res : ', var_residual)
+        eps_max = max(eps_acc)
+        idx_max = eps_acc.index(eps_max)
+        if ((eps_max>1.4*var_residual) and (eps_max>20)):
+            #print('outlier : ', idx_max, eps_max )
+            idx_outlier = idx_max
+            outlier = [idx_outlier, th_acc[idx_outlier], r_acc[idx_outlier]]
+            #print(eps_max, var_residual)
 
-        for eps in eps_acc:
-            if abs(eps)>3*var_residual:
-                print('outliers')
+    
+    #print('VP : ', x0, y0)
 
-        print('VP : ', x0, y0)
-
-    return (x0+1),y0
+    return ((x0+1),y0), outlier #x0 + 1
 
 def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_mask_i, i):
 

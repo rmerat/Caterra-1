@@ -31,26 +31,59 @@ def Initial_Process(img, nb_row = 4, sky = 0):
         img_no_sky = img
 
     best_mask_median, best_mask_brut, col_best_mask = MaskingProcess.veg_segmentation(img, img_no_sky)
-    best_mask_median_edge = cv2.Canny(best_mask_median,100,200)
-    best_mask_brut_edge = cv2.Canny(best_mask_brut,100,200)
 
-
-    #cv2.imshow('best_mask_median_edge', best_mask_median_edge)
+    #remove bushy regions 
+    kernel = np.ones((2, 2), np.uint8)
+    eroded = cv2.erode(best_mask_brut, kernel, iterations=1)
+    best_mask = best_mask_brut-eroded
+    
+    #cv2.imshow('best_mask_brut with bushes', cv2.Canny(best_mask_brut,100,200))
+    #cv2.imshow('eroded bushes bushes', eroded)
     #cv2.imshow('best_mask_brut', best_mask_brut)
+
+    #best_mask_brut = best_mask
+
+    best_mask_median_edge = cv2.Canny(best_mask_median,100,200)
+    best_mask_brut_edge = cv2.Canny(best_mask_brut,100,200) 
+
+
+    #cv2.imshow('best_mask_no_bush', best_mask)
     #cv2.imshow('vegetation segmentation',cv2.bitwise_and(img_no_sky, img_no_sky, mask = best_mask_brut))
     #cv2.imshow('best_mask_brut_edge', best_mask_brut_edge)
     #cv2.waitKey(0)
 
 
 
-    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_brut_edge, img_no_sky, nb_row)
+    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_brut_edge, img_no_sky, nb_row+1)
 
-    vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage=0))
+    vp_pt, outlier = MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage=0)
+    vp_pt = np.asarray(vp_pt)
+    if outlier is not None:
+        print('outlier : ', outlier)
+        arr_mask.pop(outlier[0])
+        th_acc.pop(outlier[0])
+        r_acc.pop(outlier[0])
+        threshold_acc.pop(outlier[0])
+        pts1.pop(outlier[0])
+        pts2.pop(outlier[0])
+        vp_pt, outlier = MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage=0)
+        vp_pt = np.asarray(vp_pt)
+
+    else : #remove last line 
+        print('no outliers lines')
+        arr_mask.pop()
+        th_acc.pop()
+        r_acc.pop()
+        threshold_acc.pop()
+        pts1.pop()
+        pts2.pop()
+
+
 
     #cv2.imshow('after initial process', best_mask_evaluate)
     #cv2.waitKey(0)
 
-    arr_mask = check_equidistance(arr_mask)
+    #arr_mask = check_equidistance(arr_mask)
 
     return best_mask_evaluate, arr_mask, col_best_mask, vp_pt
 
@@ -139,6 +172,9 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
     for i in range(len(arr_mask)): #for each row
         mask_single_crop = np.zeros_like(best_mask)
         cond = m = cond_horizon = cond_double = 0
+        #cv2.imshow('masked images : ', masked_images[i])
+        #cv2.imshow('best_mask', best_mask)
+        #cv2.waitKey(0)
 
         p1, p2, m, cond_speed = MaskingProcess.apply_ransac(image, masked_images[i], vp_pt, vp_on, best_mask, arr_mask[i], i) #HERE JUST CHANGED 
         
@@ -177,6 +213,9 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
         cv2.line(img_ransac_lines, p1, p2, (255,0,0), 1)
         cv2.line(crops_only, p1, p2, (255,0,0), 1)
         cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
+       # cv2.imshow('mask_single_crop', mask_single_crop)
+        #cv2.imshow('img_ransac_lines', img_ransac_lines)
+        #cv2.waitKey(0)
         arr_mask_new.append(mask_single_crop)
 
     #TODO : put back : vp_pt = intersect_multiple_lines(pts1, pts2)

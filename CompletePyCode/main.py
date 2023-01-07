@@ -31,17 +31,18 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
             hough_img, arr_mask, col_best_mask, vp_pt = PerImageProcessing.Initial_Process(img, nb_row = nb_row, sky = sky)
             if (idx == 0):
                 height_original = images[0].shape[0]
-            #cv2.imshow('img hough_img: ', cv2.cvtColor(hough_img, cv2.COLOR_RGB2BGR))
-            #cv2.waitKey(0)
+            cv2.imshow('img hough_img: ', cv2.cvtColor(hough_img, cv2.COLOR_RGB2BGR))
             height, _, = arr_mask[0].shape
             stage = SPEED_PROCESS
             print('...speed process...')
         
         if stage == SPEED_PROCESS: #quick, use of ransac 
-
+            print('img ', idx, 'out of', len(images))
             img = img[height_original-height:,:,:]
             arr_mask, img_annotated, vp_pt, cond_speed, img_crops_only, pts1, pts2 = PerImageProcessing.speed_process_lines(img, col_best_mask, arr_mask, vp_pt, vp_on=vp_on)
-
+            if(((idx+1)%20==0)):# and (idx!=0)):
+                cond_speed = 0
+                print('%20')
             if(cond_speed==0):
                 stage = INI_PROCESS
             else :
@@ -49,9 +50,8 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
                 imgs_crops_only.append(img_crops_only)
                 r_acc, th_acc,threshold_acc = MaskingProcess.get_r_theta(pts1, pts2)
                 
-                #print('VP 2 is : ',vp_pt)
-
-                vp_pt = np.asarray(MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage))
+                vp_pt, _ = MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage)
+                vp_pt = np.asarray(vp_pt)
                                 
                 if(mode ==VID): 
                     #draw VP point : 
@@ -66,6 +66,8 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
                     cv2.imshow('img annotated: ', img_annotated)
 
                     cv2.waitKey(0)
+            stage = INI_PROCESS
+
             
     stage = FINAL_PROCESS
 
@@ -85,7 +87,7 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
 
 if __name__ == "__main__":
     sky_on = 1
-    mode = SING_IMG
+    mode = VID
     #first, get the name of the files we are going to analyze
     if (mode == VID):
         #distinguer entre mode video et mode single image?
@@ -96,11 +98,10 @@ if __name__ == "__main__":
         vp_on = 1
 
     if (mode == SING_IMG): 
-        print('sing img')
         imgs_folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines'
-        name_images = 'crop_row_001.JPG' #crop_row_001, crop_row_020, crop_row_053
+        name_images = 'crop_row_047.JPG' #crop_row_001, crop_row_020, crop_row_053
         sky_on = 0
-        nb_row = 3
+        nb_row = 6  
         vp_on = 1
 
     #open and resize images for consistency --> returns img in rgb format
