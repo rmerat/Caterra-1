@@ -58,7 +58,7 @@ def obtain_images(name_images, image_folder, mode):
         img = cv2.imread(os.path.join(image_folder, name_images))
         if img is not None : 
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img_small = img_resize(img_rgb, output_width=320)
+            img_small = img_resize(img_rgb, output_width=500)#320)
             imgs.append(img_small)
         else : 
             print('no image read')
@@ -137,7 +137,7 @@ def extract_rgb_colors(img):
     """
     # extract the main colors from the image 
     im_pil = Image.fromarray(img)
-    colors_x = extcolors.extract_from_image(im_pil, tolerance = 12, limit = 8) 
+    colors_x = extcolors.extract_from_image(im_pil, tolerance = 12, limit = 8)# before limit 8 
     colors_rgb, colors_lab = colors_to_array(colors_x)
     #donuts(colors_x)# for debugging 
 
@@ -175,20 +175,24 @@ def mask_vegetation(img_lab, col_lab):
     mask = cv2.inRange(img_lab, lower_col, upper_col)
     return mask
 
-def veg_segmentation(img, img_no_sky):
+def veg_segmentation(img, img_no_sky, idx, col_best_mask):
 
-    # extract the main colors from the image 
-    colors_rgb = extract_rgb_colors(img)
+    if (idx==0):
+        # extract the main colors from the image 
+        colors_rgb = extract_rgb_colors(img)
 
-    # extract greenest color 
-    col_best_mask = greenest_color(colors_rgb)
+        # extract greenest color 
+        col_best_mask = greenest_color(colors_rgb)
 
     # convert color and image to lab space
     img_lab = skimage.color.rgb2lab(img_no_sky/255)
     col_best_mask_lab = skimage.color.rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
 
+
     # vegetation segmentation using mask of the detected vegetal color
     best_mask = mask_vegetation(img_lab, col_best_mask_lab)
+    #cv2.imshow('best mask no median : ', best_mask)
+
     best_mask_median = cv2.medianBlur(best_mask,3)
     
     return best_mask_median, best_mask, col_best_mask
@@ -211,8 +215,8 @@ def hough_line_improved(mask, angle_acc):
 
     # Hough accumulator array of theta vs rho
     accumulator = np.zeros((2 * diag_len, num_thetas), dtype=np.uint64)
+    #acc_bis = np.zeros((2 * diag_len, num_thetas), dtype=np.uint64)
     y_idxs, x_idxs = np.nonzero(mask)  # (row, col) indexes to edges
-    #print(y_idxs, x_idxs)
 
     # Vote in the hough accumulator
     for i in range(len(x_idxs)):
@@ -224,14 +228,17 @@ def hough_line_improved(mask, angle_acc):
             # Calculate rho. diag_len is added for a positive index
             rho = round(x * cos_t[t_idx] + y * sin_t[t_idx]) + diag_len
             accumulator[rho, t_idx] += 1
+            #acc_bis[rho, t_idx] += 1
             if (abs(np.rad2deg(thetas[t_idx])-90)<25): #if horizontale lignes 
                 accumulator[:, t_idx] = 0
             
             for angle in angle_acc:
                 if (abs(np.rad2deg(thetas[t_idx])-np.rad2deg(angle))<10): #if angle already detected 
                     accumulator[:, t_idx] = 0
-
-
+    
+    #acc_new = cv2.normalize(acc_bis, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    #cv2.imshow('acc bis ', acc_new) #cv2.convertScaleAbs(acc, alpha=1.0/256.0))
+    #cv2.waitKey(0)
     return accumulator, thetas, rhos
 
 def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
@@ -261,6 +268,9 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
         acc, thetas, rhos = hough_line_improved(best_mask_edge_copy, th_acc)
 
         th_max = acc.max()
+        acc_new = cv2.normalize(acc, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        #cv2.imshow('hough space ', acc_new) #cv2.convertScaleAbs(acc, alpha=1.0/256.0))
+        #cv2.waitKey(0)
 
         r_idx, th_idx = np.where(acc>=th_max)
         r = rhos[r_idx[0]]#in case multiple same max 
@@ -281,11 +291,19 @@ def keep_mask_max_acc_lines(best_mask_edge, img_no_sky, crop_nb):
 
         #band_width = 40
 
-        cv2.line(best_mask_edge_copy, p1, p2, (0,0,0), int(band_width))#/2))
+        cv2.line(best_mask_edge_copy, p1, p2, (0,0,0), int(band_width+15))
+        #cv2.imshow('after removal of a line : ', best_mask_edge_copy)
+        #cv2.waitKey(0)
+
         cv2.line(best_mask_evaluate, p1, p2, (255,0,0), 3) #pb dans les dessin TODO:le regler 
+        #cv2.imshow('after drawing a line : ', best_mask_evaluate)
+        #cv2.waitKey(0)
         cv2.line(img_no_sky_copy, p1, p2, (255,0,0), 3)
         cv2.line(mask_single_crop, p1, p2, (255,0,0), band_width)
         mask.append(mask_single_crop)
+
+       
+
     
     #pts1, pts2, th_acc, r_acc = check_outliers_crop(pts1,pts2, th_acc, r_acc)
         
@@ -325,7 +343,8 @@ def VP_detection(th_acc, r_acc, threshold_acc, stage ):
     #print(np.linalg.det(M))
     b = np.array([D,E])
     if(np.linalg.det(M)!=0): 
-        x0,y0 = np.linalg.solve(M,b).astype(int)
+        x0,y0 = np.linalg.solve(M,b)
+        x0 = int(x0)
     else : 
         x0 = y0 = 0
         print('sing matrix ')
@@ -345,8 +364,9 @@ def VP_detection(th_acc, r_acc, threshold_acc, stage ):
         var_residual = np.sqrt(var_residual)
         #print('var res : ', var_residual)
         eps_max = max(eps_acc)
+        print('is it outlier = eps max, var', eps_max, var_residual)
         idx_max = eps_acc.index(eps_max)
-        if ((eps_max>1.4*var_residual) and (eps_max>20)):
+        if ((eps_max>1.25*var_residual) and (eps_max>20)):
             #print('outlier : ', idx_max, eps_max )
             idx_outlier = idx_max
             outlier = [idx_outlier, th_acc[idx_outlier], r_acc[idx_outlier]]
@@ -379,8 +399,7 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
 
     #put condition, if data to small, go to initial process!
     if(data.shape[0]<20):
-        print(' not enough data in mask : ', i)
-        print(data.shape)
+        print(' not enough data in mask : ', i, 'of shape ', data.shape)
         #cv2.imshow('masked image i', masked_images_i)
         #cv2.imshow('best_mask', best_mask)
         #cv2.imshow('arr_mask_i', arr_mask_i)
@@ -406,12 +425,6 @@ def apply_ransac(img_no_sky, masked_images_i, vp_point, vp_on, best_mask, arr_ma
         p2 = [int(x0 - k2), int(y0 + k2*m)]
         p0 = [int(x0),int(y0)]
         p1 = [int(x0 - k1), int(y0 + k1*m)]
-
-        """print('\n', i, ' :  k1, k2  : ', k1, k2, 'm : ', m)
-        print('x0,y0 : ', x0, y0,)
-        print('x1, y1 : ', p1)
-        print('x2,y2 : ', p2, '\n')"""
-
 
     return p1, p2, m, cond_speed
 
@@ -574,11 +587,19 @@ def get_sky_region_gradient(img):
     img_gray = cv2.blur(img_gray, (9, 3))
     img_gray= cv2.medianBlur(img_gray, 5)
     lap = cv2.Laplacian(img_gray, cv2.CV_8U)
+
+
+
     gradient_mask = (lap < 6).astype(np.uint8) # we keep region with small laplacian ->sky
+
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 3))
     mask = cv2.morphologyEx(gradient_mask, cv2.MORPH_ERODE, kernel) #erosion that takes the minimum of neighbouring px
+
     mask_sky = cal_skyline(mask)
+
+
     after_img = cv2.bitwise_and(img, img, mask=mask_sky)
+
     return after_img
 
 def cut_image_from_mask(grad_sky,img):
@@ -587,6 +608,8 @@ def cut_image_from_mask(grad_sky,img):
     low = np.array([1,1,1])
     high = np.array([256,256,256])
     masked_sky = cv2.inRange(grad_sky, low, high)
+
+
     h,w = masked_sky.shape
     i = h
     count = flag = j = 0
@@ -598,15 +621,11 @@ def cut_image_from_mask(grad_sky,img):
             if (masked_sky[i,j] == 255) : # if px is sky 
                 count = count + 1
             j=j+1
-            if (count > (w*0.3)): #cut until 30% of the line isn't sky
+            if (count > (w*0.5)): #cut until 30% of the line isn't sky
                 lim = i; 
                 flag = 1
 
     img_new = img[lim:,:,:]
-
-
-    #cv2.imshow('Image with Sky cut out', cv2.cvtColor(img_new, cv2.COLOR_BGR2RGB))
-    #cv2.waitKey(2000)
     
     return img_new
 
