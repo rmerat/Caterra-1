@@ -108,7 +108,7 @@ if __name__ == "__main__":
         imgs_folder = '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/'
         name_images = MaskingProcess.obtain_name_images(imgs_folder)
         sky_on = 1
-        nb_row = 4
+        nb_row = 5
         vp_on = 1
 
     if (mode == SING_IMG): 

@@ -173,14 +173,15 @@ def check_equidistance(arr_mask):
 
     return arr_mask
 
-def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
+def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on, nb_crops=5):
 
     img_lab = skimage.color.rgb2lab(image/255) #calculate best color mask based on previously calculated color 
     col_best_mask_lab = skimage.color.rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
 
     best_mask = MaskingProcess.mask_vegetation(img_lab, col_best_mask_lab)
+    #best_mask = cv2.medianBlur(best_mask,3)
     band_width = int(image.shape[1]/25)
-    #cv2.imshow('best_mask before speed process line : ', best_mask)
+    cv2.imshow('best_mask before speed process line : ', best_mask)
 
     pts1 = []
     pts2 = []
@@ -190,11 +191,15 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
     crops_only = np.zeros_like(image)
     arr_mask_new = []
     
-    for i in range(len(arr_mask)):
-        print('size best_mask and arr_mask : ', best_mask.shape, arr_mask[0].shape)
+    for i in range(nb_crops):
+        #print('size best_mask and arr_mask : ', best_mask.shape, arr_mask[0].shape)
         masked_images.append(cv2.bitwise_and(best_mask, arr_mask[i]))
-        #cv2.imshow('masked image of i :', masked_images[i])
+        #cv2.imshow('masked image of i :'+ str(i), masked_images[i])
+        #cv2.imshow('mask i :'+ str(i), arr_mask[i])
+
         #cv2.waitKey(0)
+    print('len array mask des diff crops : ', len(arr_mask))
+
 
     
     for i in range(len(arr_mask)): #for each row
@@ -207,14 +212,14 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
         p1, p2, m, cond_speed = MaskingProcess.apply_ransac(image, masked_images[i], vp_pt, vp_on, best_mask, arr_mask[i], i) #HERE JUST CHANGED 
         
         if (cond_speed==0): 
-            return arr_mask_new, img_ransac_lines, vp_pt, cond_speed, crops_only, pts1, pts2
+            return arr_mask, img_ransac_lines, vp_pt, cond_speed, crops_only, pts1, pts2
 
         masked_images[i], cond_horizon = MaskingProcess.remove_horizon(p1, p2, m, masked_images[i], band_width)
         masked_images[i], cond_double = MaskingProcess.remove_double(p1, p2, m, acc_m, masked_images[i], band_width)
 
         if ((cond_horizon==0) or (cond_double==0)):
             cond_speed = 0
-            return arr_mask_new, img_ransac_lines, vp_pt, cond_speed, crops_only, pts1, pts2
+            return arr_mask, img_ransac_lines, vp_pt, cond_speed, crops_only, pts1, pts2
 
         
         pts1.append(p1)
@@ -226,6 +231,6 @@ def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on):
        # cv2.imshow('mask_single_crop', mask_single_crop)
         #cv2.imshow('img_ransac_lines', img_ransac_lines)
         #cv2.waitKey(0)
-        arr_mask_new.append(mask_single_crop)
+        arr_mask[i] = mask_single_crop
 
-    return arr_mask_new, img_ransac_lines, vp_pt, cond_speed, crops_only, pts1, pts2
+    return arr_mask, img_ransac_lines, vp_pt, cond_speed, crops_only, pts1, pts2

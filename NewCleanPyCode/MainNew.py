@@ -25,15 +25,15 @@ def detection_process(images, mode, name_images, eval_on = 0, nb_row = 6, sky = 
     sky_height = 0
 
     for idx, img in enumerate(images):
+            #cv2.waitKey(0)
 
             if stage == INI_PROCESS: #longer but needed to create initial mask of images 
                 hough_img, arr_mask, col_best_mask, vp_pt, sky_height = PerImageProcessing.Initial_Process(img, idx, col_best_mask, sky_height, nb_row = nb_row, sky = sky)
                 stage = SPEED_PROCESS
             
             if stage == SPEED_PROCESS: #quick, use of ransac 
-                cv2.waitKey(0)
                 print('img ', idx+1, 'out of', len(images))
-                img_no_sky = img[sky_height:, :,:]
+                img_no_sky = np.copy(img[sky_height:, :,:])
 
                 arr_mask_new, img_annotated, vp_pt, cond_speed, img_crops_only, pts1, pts2 = PerImageProcessing.speed_process_lines(img_no_sky, col_best_mask, arr_mask, vp_pt, vp_on=vp_on)
                 if (((idx+1)%10)==0):
@@ -43,8 +43,8 @@ def detection_process(images, mode, name_images, eval_on = 0, nb_row = 6, sky = 
                 if(cond_speed==0):
                     cond_speed = 1
                     hough_img, arr_mask, col_best_mask, vp_pt, sky_height = PerImageProcessing.Initial_Process(img, idx, col_best_mask, sky_height, nb_row = nb_row, sky = sky)
-                    img_no_sky = img[sky_height:, :,:]
-                    arr_mask, img_annotated, vp_pt, cond_speed, img_crops_only, pts1, pts2 = PerImageProcessing.speed_process_lines(img_no_sky, col_best_mask, arr_mask, vp_pt, vp_on=vp_on)
+                    img_no_sky = np.copy(img[sky_height:, :,:])
+                    arr_mask_new, img_annotated, vp_pt, cond_speed, img_crops_only, pts1, pts2 = PerImageProcessing.speed_process_lines(img_no_sky, col_best_mask, arr_mask, vp_pt, vp_on=vp_on, nb_crops=nb_row)
                     print('new speed cond : ', cond_speed)
                 
                 imgs_annotated.append(img_annotated)
@@ -53,37 +53,17 @@ def detection_process(images, mode, name_images, eval_on = 0, nb_row = 6, sky = 
                     arr_mask = arr_mask_new
                     vp_pt, _ = MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage)
                     vp_pt = np.asarray(vp_pt)
-                cv2.imshow('img_annotated', img_annotated)
-                
-                #on veut mettre cette image dans le processing non?
+               
 
-                #else :
-                """else:
-                    imgs_annotated.append(img_annotated)
-                    imgs_crops_only.append(img_crops_only)
-                    r_acc, th_acc,threshold_acc = MaskingProcess.get_r_theta(pts1, pts2)
-                    
-                    vp_pt, _ = MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage)
-                    vp_pt = np.asarray(vp_pt)
-                    print('vp : ', vp_pt)
-                """
-
-
-                """if(mode ==VID): 
-                        #draw VP point : 
-                        cv2.circle(img_annotated, (int(vp_pt[0]),int(vp_pt[1])), 10, (255,255,255), 5)
-                        cv2.imshow('vid : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
-                        cv2.waitKey(0)
-                        if cv2.waitKey(1) == ord('q'):
-                            cv2.destroyAllWindows() 
-                            break   
-                    if(mode == SING_IMG):
-                        cv2.imshow('crop only : ', img_crops_only)
-                        cv2.imshow('img annotated: ', img_annotated)
-
-                        cv2.waitKey(0)"""
-            filename = '/home/roxane/Desktop/img_annotated_clean/img_' + str(idx) + '.jpg'
-            cv2.imwrite(filename, img_annotated)
+                if(mode ==VID): 
+                    cv2.imshow('vid : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+                    #cv2.waitKey(0)
+                    if cv2.waitKey(1) == ord('q'):
+                        cv2.destroyAllWindows() 
+                        break   
+            
+            filename = '/home/roxane/Desktop/img_annotated_clean/img_' + str(idx).zfill(3) + '.jpg'
+            cv2.imwrite(filename,  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
 
                 
         #stage = FINAL_PROCESS
