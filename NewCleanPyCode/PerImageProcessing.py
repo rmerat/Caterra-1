@@ -45,44 +45,8 @@ def Initial_Process(img, idx, col_best_mask, sky_height = 0, nb_row = 4, sky = 0
 
     best_mask_median_edge = cv2.Canny(best_mask_median,100,200)
     best_mask_brut_edge = cv2.Canny(best_mask_brut,100,200) 
-    best_mask_nobushes_edge = cv2.Canny(best_mask_nobushes,100,200)
 
-    #cv2.imshow('vegetation best_mask_median', best_mask_median)
-
-    #cv2.imshow('vegetation best_mask_median_edge', best_mask_median_edge)
-
-    kernel = np.ones((2, 2), np.uint8)
-    best_mask_median_edge_dil22 = cv2.dilate(best_mask_median_edge, kernel, iterations = 1)
-    #cv2.imshow('best_mask_median_edge dilated 22', best_mask_median_edge_dil22)
-
-    kernel = np.ones((2, 1), np.uint8)
-    best_mask_median_edge_dil21 = cv2.dilate(best_mask_median_edge, kernel, iterations = 1)
-    #cv2.imshow('best_mask_median_edge dilated 21 ', best_mask_median_edge_dil21)
-
-    #kernel = np.ones((1, 2), np.uint8)
-    #best_mask_median_edge_dil12 = cv2.dilate(best_mask_median_edge, kernel, iterations = 1)
-    #cv2.imshow('best_mask_median_edge dilated 12 ', best_mask_median_edge_dil12)
-
-    #cv2.imshow('vegetation best_mask_brut',  best_mask_brut)
-
-    #cv2.imshow('vegetation best_mask_brut_edge',  best_mask_brut_edge)
-
-
-    #cv2.imshow('vegetation best_mask_nobushes',  best_mask_nobushes)
-
-    #cv2.imshow('vegetation best_mask_nobushes_edge',  best_mask_nobushes_edge)
-
-    # Noise removal using Morphological
-    # closing operation
-    #kernel = np.ones((2, 2), np.uint8)
-    best_mask_nobushes_dil = cv2.dilate(best_mask_nobushes, kernel, iterations = 1)
-    #cv2.imshow('best mask no bushes dilated ', best_mask_nobushes_dil)
-    # Background area using Dilation
-
-    #cv2.waitKey(0)
-
-
-    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_median_edge, img_no_sky, nb_row+1)
+    arr_mask, th_acc, r_acc, threshold_acc, best_mask_evaluate, pts1, pts2 = MaskingProcess.keep_mask_max_acc_lines(best_mask_brut_edge, img_no_sky, nb_row+1)
 
     vp_pt, outlier = MaskingProcess.VP_detection(th_acc, r_acc, threshold_acc, stage=0)
     vp_pt = np.asarray(vp_pt)
@@ -173,7 +137,7 @@ def check_equidistance(arr_mask):
 
     return arr_mask
 
-def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on, nb_crops=5):
+def speed_process_lines(image, col_best_mask, arr_mask, vp_pt, vp_on, nb_crops=3):
 
     img_lab = skimage.color.rgb2lab(image/255) #calculate best color mask based on previously calculated color 
     col_best_mask_lab = skimage.color.rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
