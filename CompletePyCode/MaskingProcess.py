@@ -191,10 +191,11 @@ def veg_segmentation(img, img_no_sky, idx, col_best_mask):
 
     # vegetation segmentation using mask of the detected vegetal color
     best_mask = mask_vegetation(img_lab, col_best_mask_lab)
-    #cv2.imshow('best mask no median : ', best_mask)
+    cv2.imshow('best mask no median : ', best_mask)
 
     best_mask_median = cv2.medianBlur(best_mask,3)
-    
+    cv2.imshow('best with median : ', best_mask)
+
     return best_mask_median, best_mask, col_best_mask
 
 def hough_line_improved(mask, angle_acc):

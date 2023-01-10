@@ -12,7 +12,7 @@ INI_PROCESS = 0
 SPEED_PROCESS = 1
 FINAL_PROCESS = 2
 
-def detection_process(images, mode, name_images, eval_on = 0, nb_row = 6, sky = 1, vp_on = 1): 
+def detection_process(images, mode, name_images, eval_on = 0, nb_row = 3, sky = 1, vp_on = 1): 
     """
     input : list of img to be analyzed in rgb format
     output : not yet defined, prob data + flag set to one if analyzing went smoothly 
@@ -60,6 +60,13 @@ def detection_process(images, mode, name_images, eval_on = 0, nb_row = 6, sky = 
                     #cv2.waitKey(0)
                     if cv2.waitKey(1) == ord('q'):
                         cv2.destroyAllWindows() 
+                        break 
+
+                if(mode == SING_IMG): 
+                    cv2.imshow('single image : ', cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+                    #cv2.waitKey(0)
+                    if cv2.waitKey(1) == ord('q'):
+                        cv2.destroyAllWindows() 
                         break   
             
             filename = '/home/roxane/Desktop/img_annotated_clean/img_' + str(idx).zfill(3) + '.jpg'
@@ -95,7 +102,7 @@ if __name__ == "__main__":
     """
     vp_on = 1
     sky_on = 1
-    mode = VID
+    mode = SING_IMG
     nb_row = 4
 
     if (mode == VID):
@@ -105,10 +112,10 @@ if __name__ == "__main__":
         nb_row = 5
 
     if (mode == SING_IMG): 
-        imgs_folder = '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/' # '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines' # '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/' 
-        name_images = 'rgb000.jpg' # 'crop_row_256.JPG' #'rgb000.jpg' # crop_row_001, crop_row_020, crop_row_053
+        imgs_folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines' #/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/' # '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines' # '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/' 
+        name_images = 'crop_row_001.JPG' # 'crop_row_256.JPG' #'rgb000.jpg' # crop_row_001, crop_row_020, crop_row_053
         sky_on = 1
-        nb_row = 4
+        nb_row = 3
         vp_on = 1
 
     # open and resize images for consistency --> returns img in rgb format

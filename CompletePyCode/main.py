@@ -101,7 +101,7 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
 
 if __name__ == "__main__":
     sky_on = 1
-    mode = VID
+    mode = SING_IMG
     #first, get the name of the files we are going to analyze
     if (mode == VID):
         #distinguer entre mode video et mode single image?
@@ -112,10 +112,10 @@ if __name__ == "__main__":
         vp_on = 1
 
     if (mode == SING_IMG): 
-        imgs_folder = '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/' # '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines' # '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/' 
-        name_images = 'rgb000.jpg' # 'crop_row_256.JPG' #'rgb000.jpg' # crop_row_001, crop_row_020, crop_row_053
+        imgs_folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines' #/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/' # '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines' # '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58/' 
+        name_images = 'crop_row_008.JPG' # 'crop_row_256.JPG' #'rgb000.jpg' # crop_row_001, crop_row_020, crop_row_053
         sky_on = 1
-        nb_row = 4
+        nb_row = 3
         vp_on = 1
 
     # open and resize images for consistency --> returns img in rgb format

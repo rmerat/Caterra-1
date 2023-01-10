@@ -39,6 +39,8 @@ def Initial_Process(img, idx, col_best_mask, nb_row = 4, sky = 0):
     best_mask_nobushes = best_mask_brut-eroded
 
     best_mask_median_edge = cv2.Canny(best_mask_median,100,200)
+    cv2.imshow('best_mask_median_edge', best_mask_median_edge)
+    cv2.waitKey(0)
     best_mask_brut_edge = cv2.Canny(best_mask_brut,100,200) 
     best_mask_nobushes_edge = cv2.Canny(best_mask_nobushes,100,200)
 
