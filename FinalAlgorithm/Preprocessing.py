@@ -2,16 +2,26 @@ import numpy as np
 import cv2 
 from scipy.signal import medfilt
 from PIL import Image
-from colormap import rgb2hex
+from colormap import rgb2hex, hex2rgb
 from skimage.color import rgb2lab
 import extcolors
+import matplotlib.pyplot as plt 
+import pandas as pd 
 
-def init(image):
 
+VID = 0
+IMG = 1
+
+
+def init(image, mode):
+
+    av_info = 0
     height_sky = sky_process(image)
     col_veg = extract_veg_colour(image) #maybe to do it image with no sky?
+    if (mode==VID):
+        av_info = get_average_data(image, col_veg) #put this in init   
 
-    return height_sky, col_veg
+    return height_sky, col_veg, av_info
 
 
 def get_sky_region_gradient(image):
@@ -58,7 +68,7 @@ def cut_image_from_mask(grad_sky,img):
     low = np.array([1,1,1])
     high = np.array([256,256,256])
     masked_sky = cv2.inRange(grad_sky, low, high)
-
+    sky_height = 0
 
     h,w = masked_sky.shape
     i = h #start from the buttom of the image
@@ -113,10 +123,15 @@ def extract_rgb_colours(image):
     output : list of main rgb colors 
     """
     image_pil = Image.fromarray(image)
-    colors_x = extcolors.extract_from_image(image_pil, tolerance = 12, limit = 8)
+    colors_x = extcolors.extract_from_image(image_pil, tolerance = 6, limit=10) # 3, limit = 16) #16)
     rgb_colours = colors_to_array(colors_x)
-    #donuts(colors_x)# for debugging 
+    donuts(colors_x)# for debugging 
     return rgb_colours
+
+
+
+def rgb_to_hex(rgb):
+    return '%02x%02x%02x' % rgb
 
 
 def extract_greenest_colour(colors_rgb, image_rgb=0):
@@ -128,21 +143,31 @@ def extract_greenest_colour(colors_rgb, image_rgb=0):
     col_best_mask = [0, 255, 0]
 
     for col in colors_rgb:
-        name = 'diferent maske for col ' + str(col[0]) + str(col[1])+ str(col[2])
         col_lab = rgb2lab((col[0]/255, col[1]/255, col[2]/255))
-        masked_img = cv2.inRange(rgb2lab(image_rgb/255), col_lab - [8,8,8], col_lab + [8,8,8])
-        cv2.imshow(name, masked_img)
-
-
         diff = np.linalg.norm(np.asarray(col - [0,255,0])) # maybe better to use lab format?
         if diff < smallest_diff: # if closest to green
             smallest_diff = diff
             col_best_mask = col
 
     col_best_mask = col_best_mask.astype(int)
-    r,g,b = (col_best_mask.data)
-    
+
+    #r,g,b = (col_best_mask.data)
+    #colhex = rgb_to_hex((int(col_best_mask[0]),int(col_best_mask[1]),int(col_best_mask[2])))
+    #print('col selected : ', colhex)
+    #name = 'diferent maske for col ' + str(colhex)
+    #thr = [4,4,4]
+    #col_lab = rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
+    #masked_img = cv2.inRange(rgb2lab(image_rgb/255), col_lab - thr, col_lab + thr)
+    #cv2.imshow(name, cv2.cvtColor(masked_img, cv2.COLOR_RGB2BGR))
+    #cv2.imshow('bitwise',cv2.cvtColor(cv2.bitwise_and(image_rgb, image_rgb, mask = masked_img), cv2.COLOR_RGB2BGR))  
+
     return col_best_mask
+
+def get_average_data(image, col_veg):
+    image_lab = rgb2lab(image/255)
+    colour_veg_lab = rgb2lab((col_veg[0]/255, col_veg[1]/255, col_veg[2]/255))
+    mask = in_colour_range(4, colour_veg_lab, image_lab)
+    return np.size(np.where(mask>0))/np.size(mask)
 
 
 def extract_veg_colour(image):
@@ -156,27 +181,79 @@ def extract_veg_colour(image):
 
     return colour 
 
-def mask_vegetation(image_lab, colour_veg_lab):
+def mask_vegetation(image_lab, colour_veg_lab, mode, av_info):
     """
     input : image in lab space
     output : vegetation mask
     """
-    # Using inRange method, to create a mask
-    thr = [8,8,8] # 4,4,4 for vid? before : 8 20 8 , TODO : maybe change  thr according to histogram ??
+    k = 4
+    mask = in_colour_range(k, colour_veg_lab, image_lab)
+
+    if(mode==VID):
+        while(((np.size(np.where(mask>0))/np.size(mask))>1.5*av_info) and k>3):
+            k=k-1
+            mask = in_colour_range(k, colour_veg_lab, image_lab)
+        
+        while(((np.size(np.where(mask>0))/np.size(mask))<0.9*av_info) and k<13):
+            k=k+1
+            mask = in_colour_range(k, colour_veg_lab, image_lab)
+
+    return mask
+
+def in_colour_range(k, colour_veg_lab, image_lab):
+
+    thr = k*np.ones((1,3))  
     lower_col = colour_veg_lab - thr
     upper_col = colour_veg_lab + thr
     mask = cv2.inRange(image_lab, lower_col, upper_col)
 
     return mask
 
-def get_vegetation_mask(image, height_sky, colour_veg_rgb):
+def get_vegetation_mask(image, height_sky, colour_veg_rgb, mode, av_info):
 
-    # convert color and image to lab space
     image_lab = rgb2lab(image/255)
     colour_veg_lab = rgb2lab((colour_veg_rgb[0]/255, colour_veg_rgb[1]/255, colour_veg_rgb[2]/255))
 
-    # vegetation segmentation using mask of the detected vegetal color
-    vegetation_mask = mask_vegetation(image_lab, colour_veg_lab)
+    vegetation_mask = mask_vegetation(image_lab, colour_veg_lab, mode, av_info)
     #best_mask_median = cv2.medianBlur(best_mask,3) #may be useful?
 
     return vegetation_mask
+
+def donuts(colors_x): 
+    """
+    input : tuple containing list of the main colors cluster of the images and their occurence
+    output : plt figure reprensenting the main colors anf their proportions
+    """
+    colors_pre_list = str(colors_x).replace('([(','').split(', (')[0:-1]
+    df_rgb = [i.split('), ')[0] + ')' for i in colors_pre_list]
+    df_percent = [i.split('), ')[1].replace(')','') for i in colors_pre_list]
+        #convert RGB to HEX code
+
+    #convert RGB to HEX code
+    df_color_up = [rgb2hex(int(i.split(", ")[0].replace("(","")),
+                          int(i.split(", ")[1]),
+                          int(i.split(", ")[2].replace(")",""))) for i in df_rgb]
+    
+    df_color = pd.DataFrame(zip(df_color_up, df_percent), columns = ['c_code','occurence'])
+    list_color = list(df_color['c_code'])
+    list_precent = [int(i) for i in list(df_color['occurence'])]
+    text_c = [c + ' ' + str(round(p*100/sum(list_precent),1)) +'%' 
+            for c, p in zip  (list_color, list_precent)]
+    fig, ax = plt.subplots(figsize=(50,50),dpi=10)
+    wedges, text = ax.pie(list_precent,
+                        labels= text_c,
+                        labeldistance= 1.05,
+                        colors = list_color,
+                        textprops={'fontsize': 120, 'color':'black'}
+                        )
+    plt.setp(wedges, width=0.3)
+
+    #create space in the center
+    plt.setp(wedges, width=0.36)
+
+    ax.set_aspect("equal")
+    fig.set_facecolor('white')
+    #plt.show() 
+    #cv2.imshow('donut : ', fig)
+    #cv2.waitKey(0)
+    return 0
