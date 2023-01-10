@@ -6,6 +6,8 @@ import RansacProcess
 import HoughProcess
 import ExtractfromRosPackage
 import SettingUp
+from skimage.color import rgb2lab
+
 
 VID = 0
 IMG = 1
@@ -20,41 +22,34 @@ if __name__ == "__main__":
         - if IMG : foler + name of the image
     """
 
-    mode = IMG
+    mode = VID
     nb_row = 4
     folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines' 
     folder = '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58'
 
-    #put donut chart 
-
-    
     #initialisation of param : 
     hough_flag = 1
     list_rows = []
     list_validity = []
     idx_since_hough = 0
+    av_info = 0
 
     if (mode == IMG):
-        name_images = 'rgb397.jpg' #'crop_row_001.JPG' #'rgb397.jpg'
-        output_width = 300
+        name_images = 'crop_row_194.JPG' #'rgb397.jpg' #'crop_row_001.JPG' #'rgb397.jpg'
     
     if (mode == VID):
         name_images = SettingUp.obtain_name_images(folder)
-        output_width = 500
 
-    images = SettingUp.obtain_images(name_images, folder, mode, output_width = output_width)
-
-    height_sky, col_veg = Preprocessing.init(images[0])
-
+    images = SettingUp.obtain_images(name_images, folder, mode)
+    height_sky, col_veg, av_info = Preprocessing.init(images[0], mode)
 
     for idx, image in enumerate(images) : 
-        print(idx)
-        if (idx%20==0):
-            _, col_veg = Preprocessing.init(image)
-
+        
+        if(idx%10==0):
+            print(idx)
 
         image = image[height_sky:,:,:]
-        vegetation_mask = Preprocessing.get_vegetation_mask(image, height_sky, col_veg)
+        vegetation_mask = Preprocessing.get_vegetation_mask(image, height_sky, col_veg, mode, av_info)
         valid = 0
         
         while(valid==0):

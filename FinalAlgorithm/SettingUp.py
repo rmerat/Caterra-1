@@ -5,7 +5,7 @@ import os
 VID = 0
 IMG = 1
 
-def obtain_images(name_images, image_folder, mode, output_width = 500):
+def obtain_images(name_images, image_folder, mode, output_width = 320):
     """
     input : name and foler of the images location
     returns : list containing all the images in the folder in RGB format
