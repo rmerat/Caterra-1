@@ -2,15 +2,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-import extcolors
 import skimage
 import scipy
 from PIL import Image
+from colormap import rgb2hex
+import extcolors
+
+
 import math
 import skimage
 from sklearn.linear_model import LinearRegression
 import pandas as pd
-from colormap import rgb2hex
 import numpy as np
 import cv2
 import os
@@ -162,6 +164,8 @@ def greenest_color(colors_rgb):
     print('the best color is : rgb ', col_best_mask, 'hex : ', rgb2hex(r,g,b))
 
     return col_best_mask
+
+
 
 def mask_vegetation(img_lab, col_lab):
     """
