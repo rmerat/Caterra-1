@@ -5,17 +5,8 @@ import os
 VID = 0
 IMG = 1
 
-class img_attributes : 
-    name = 'rgb001.jpg'
-    img = np.zeros((320,200))
-    nb_row = 4
-    pts1 = []
-    pts2 = []
-    vp = [0,0]
-    validity = 0
 
-
-def obtain_images(name_images, image_folder, mode, output_width = 500):
+def obtain_images(name_images, image_folder, mode, output_width = 320):
     """
     input : name and foler of the images location
     returns : list containing all the images in the folder in RGB format
@@ -41,6 +32,7 @@ def obtain_images(name_images, image_folder, mode, output_width = 500):
     
     return None
 
+
 def image_resize(image, output_width = 500):
     """
     input : image
@@ -51,6 +43,7 @@ def image_resize(image, output_width = 500):
     image = cv2.resize(image, (output_width,hsize), interpolation = cv2.INTER_AREA) 
 
     return image
+
 
 def obtain_name_images(image_folder):
     """

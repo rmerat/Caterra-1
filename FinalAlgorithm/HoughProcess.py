@@ -9,8 +9,6 @@ def find_approx(image, vegetation_mask, nb_row):
     input : image with veg segmented
     output : array of the mask per crops, vanishing point 
     """
-    #put cond on bushes ?
-    #here put a loop with while(outliers)
 
     outlier = [0, 0, 0]
     pts1 = []
@@ -23,26 +21,17 @@ def find_approx(image, vegetation_mask, nb_row):
 
     #il faut faire 2 acc theta et tout : l'un ou l'on remove les outliers et l'autre pas (pour ne pas les redecouvrire)
     while(outlier is not None):
-        pts1_new, pts2_new, acc_theta_new, acc_rho_new, acc_weight_new, hough_image_new = calculate_main_rows(vegetation_mask, row_image, nb_row, pts1, pts2, acc_theta, acc_rho, acc_weight, hough_image, outlier) 
-        #prob inckuse in the argument acc_ stuff because some stuff will be deletd in eliminate outliers
+
+        pts1_new, pts2_new, acc_theta_new, acc_rho_new, acc_weight_new, hough_image_new = calculate_main_rows(row_image, nb_row, pts1, pts2, acc_theta, acc_rho, acc_weight, hough_image, outlier) 
+        
         vp = vp_detection(acc_theta_new, acc_rho_new, acc_weight_new) 
-        cv2.imshow('hough_image_new', hough_image_new)
-        cv2.waitKey(0)
-        #outliers = None 
-        outlier, idx_outliers, acc_theta, acc_rho,  acc_weight, pts1, pts2, row_image = check_outliers(acc_theta_new, acc_rho_new, acc_weight_new, pts1_new, pts2_new, vp, row_image) #peut etre donner pts ET pts1_tot et dans cette fonction els differencier ?
-        #pts1, pts2 = remove_outliers(pts1, pts2, acc_theta, acc_rho, acc_weight, outliers, idx_outliers)
+        
+        outlier, idx_outliers, acc_theta, acc_rho,  acc_weight, pts1, pts2, row_image = check_outliers(acc_theta_new, acc_rho_new, acc_weight_new, pts1_new, pts2_new, vp, row_image) 
 
-    masks = make_masks(pts1, pts2, vp, vegetation_mask) #question : est ce que le mask doit passer par le vp?
-
+    masks = make_masks(pts1, pts2, vp, vegetation_mask) 
 
     return masks, vp, hough_image
 
-def remove_outliers(pts1, pts2, acc_theta, acc_rho, acc_weight, outliers, idx_outliers):
-    if outliers is not None: 
-        pts1.pop(idx_outliers)
-        pts2.pop(idx_outliers)
-
-    return pts1, pts2
 
 def check_outliers(acc_theta_new, acc_rho_new, acc_weight_new,  pts1_new, pts2_new, vp, row_image):
 
@@ -52,9 +41,8 @@ def check_outliers(acc_theta_new, acc_rho_new, acc_weight_new,  pts1_new, pts2_n
     V = sum(acc_weight_new)
     outlier = None 
 
-
-
     for t,r,w in zip(acc_theta_new, acc_rho_new, acc_weight_new):
+        #calculate the distance between the VP and each crops
         eps = r - (x0*np.cos(t) + y0 * np.sin(t)) #fct of 
         eps_acc.append(abs(eps))
         var_residual = var_residual + (w/V)*pow(eps,2) 
@@ -66,19 +54,20 @@ def check_outliers(acc_theta_new, acc_rho_new, acc_weight_new,  pts1_new, pts2_n
     if ((eps_max>1.25*var_residual) and (eps_max>20)):
         idx_outlier = idx_max
         outlier = [idx_outlier, acc_theta_new[idx_outlier], acc_rho_new[idx_outlier]]
-        #remove it from the lists of lines 
+
+        # remove the outlier from the lists describing the faulty crops
         acc_theta_new.pop(idx_outlier)
         acc_rho_new.pop(idx_outlier)
         acc_weight_new.pop(idx_outlier)
         pts1_new.pop(idx_outlier)
         pts2_new.pop(idx_outlier)
 
-        #now the
     else : 
         outlier = None 
         idx_outlier = None
 
     return outlier, idx_outlier, acc_theta_new, acc_rho_new,  acc_weight_new, pts1_new, pts2_new, row_image
+
 
 def make_masks(pts1, pts2, vp, vegetation_mask):
 
@@ -90,8 +79,8 @@ def make_masks(pts1, pts2, vp, vegetation_mask):
         cv2.line(mask, p1, p2, (255,255,255), int(band_width))
         masks.append(mask)
 
-
     return masks
+
 
 def vp_detection(acc_theta, acc_rho, acc_weight):
 
@@ -120,6 +109,7 @@ def vp_detection(acc_theta, acc_rho, acc_weight):
         print('sing matrix ') #TODO : reflechir à ce que ca veut dire 
 
     return ((x0+1),y0)
+
 
 def find_acc_hough(mask, angle_acc, outlier):
     """
@@ -161,7 +151,13 @@ def find_acc_hough(mask, angle_acc, outlier):
     
     return accumulator, thetas, rhos
 
-def calculate_main_rows(vege_image, row_image, nb_row, pts1, pts2, acc_theta, acc_rho, acc_weight, hough_image, outlier):
+
+def calculate_main_rows(row_image, nb_row, pts1, pts2, acc_theta, acc_rho, acc_weight, hough_image, outlier):
+    """
+    Take the values from most nb_row most prominent line in the Hough Space
+    input : 
+    output :
+    """
 
     band_width = int(hough_image.shape[1]/30)
     i = 0
@@ -192,13 +188,15 @@ def calculate_main_rows(vege_image, row_image, nb_row, pts1, pts2, acc_theta, ac
 
     return pts1, pts2, acc_theta, acc_rho, acc_weight, hough_image
 
-def r_th_to_pts(rho, theta):
-        a = math.cos(theta)
-        b = math.sin(theta)
-        x0 = a * rho
-        y0 = b * rho
-        p1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
-        p2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
 
-        return p1, p2 
+def r_th_to_pts(rho, theta):
+
+    a = math.cos(theta)
+    b = math.sin(theta)
+    x0 = a * rho
+    y0 = b * rho
+    p1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
+    p2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
+
+    return p1, p2 
 

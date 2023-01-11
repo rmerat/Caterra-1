@@ -35,6 +35,7 @@ def SaveData(cr, row):
 
     return cr
 
+
 def LoadGroundTruth(name_images, imageHeight = 240, imageWidth = 320, nb_crop = 4):
 
     GroundTruthPath = '/home/roxane/Desktop/M3_2022/crop_dataset_annoted/GT data/'
@@ -80,6 +81,7 @@ def LoadGroundTruth(name_images, imageHeight = 240, imageWidth = 320, nb_crop = 
 
     return GTImage, cv, dv, v0, array_GT
 
+
 def evaluate_results(cv, dv, v0, array_GT, imageHeight = 240, imageWidth = 320, nb_crop_row = 4):
     halfWidth = imageWidth/2;
 
@@ -109,6 +111,7 @@ def evaluate_results(cv, dv, v0, array_GT, imageHeight = 240, imageWidth = 320, 
                 score_crda = score_crda + s
     score_crda = score_crda/(array_GT.shape[0]*nb_crop_row)
     print('score : ', score_crda)
+
     return score_crda, 0
 
 

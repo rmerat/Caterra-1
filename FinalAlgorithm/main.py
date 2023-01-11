@@ -6,12 +6,11 @@ import RansacProcess
 import HoughProcess
 import ExtractfromRosPackage
 import SettingUp
-from skimage.color import rgb2lab
 
 
 VID = 0
 IMG = 1
-EVAL = 1
+EVAL = 0
 
 if __name__ == "__main__":
     """
@@ -23,9 +22,10 @@ if __name__ == "__main__":
     """
 
     mode = IMG
-    nb_row = 3
+    nb_row = 5
     folder = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines' 
-    #folder = '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58'
+    folder = '/home/roxane/Desktop/M3_2022/USB/Realsense_18-08-2022_10-46-58'
+    folder = '/home/roxane/Desktop/M3_2022/Caterra/crop-detection/Images_Preprocess'
 
     #initialisation of param : 
     hough_flag = 1
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     av_info = 0
 
     if (mode == IMG):
-        name_images = 'crop_row_001.JPG' # 'rgb000.jpg' #'rgb397.jpg' #'crop_row_001.JPG' #'rgb397.jpg'
+        name_images = 'crops010.png' #crop_row_001.JPG' # 'rgb000.jpg' #'rgb397.jpg' #'crop_row_001.JPG' #'rgb397.jpg'
     
     if (mode == VID):
         name_images = SettingUp.obtain_name_images(folder)
@@ -44,10 +44,12 @@ if __name__ == "__main__":
     height_sky, col_veg, av_info = Preprocessing.init(images[0], mode)
 
     for idx, image in enumerate(images) : 
+        print('image ', idx, 'of ', len(images))
 
         image = image[height_sky:,:,:]
         vegetation_mask = Preprocessing.get_vegetation_mask(image, height_sky, col_veg, mode, av_info)
         valid = 0
+        cv2.imshow('vegetation_mask', vegetation_mask)
         
         while(valid==0):
             if(hough_flag==1):
@@ -60,14 +62,14 @@ if __name__ == "__main__":
                 valid, masks, pts1, pts2, img_annotated = RansacProcess.find_rows(image, masks, vp, vegetation_mask)
                 rows = [pts1, pts2]
 
-                if ((idx_since_hough%30==0) and (idx_since_hough>0)):
+                if ((idx_since_hough%5==0) and (idx_since_hough>0)):
                     valid = 0
                 
                 if (idx_since_hough==0 and valid == 1):
                     list_rows.append(rows)
                     list_validity.append(1)
 
-                if (idx_since_hough == 0 and valid == 0): #we just did the HT but still no good result 
+                if (idx_since_hough == 0 and valid == 0): 
                     list_rows.append(rows)
                     list_validity.append(0)
                     valid = 1 # we did our best, go to next frame anyway 
@@ -83,16 +85,12 @@ if __name__ == "__main__":
 
         cv2.imshow('img_annotated',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
         filename = '/home/roxane/Desktop/img_annotated_clean/img_' + str(idx).zfill(3) + '.jpg'
-        cv2.imwrite(filename,  cv2.cvtColor(hough_image, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(filename,  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
         if(mode==VID):
             if cv2.waitKey(1) == ord('q'):
                 break
-
         
-        print(list_rows)
-
         if(EVAL == True):
-            print('evaluating ')
             #if(mode == IMG):
             crop_only = Evaluation.SaveData(img_annotated, list_rows[0])
             GTImage, cv, dv, v0, array_GT = Evaluation.LoadGroundTruth(name_images)

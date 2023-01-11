@@ -162,6 +162,7 @@ def extract_greenest_colour(colors_rgb, image_rgb=0):
 
     return col_best_mask
 
+
 def get_average_data(image, col_veg):
     image_lab = rgb2lab(image/255)
     colour_veg_lab = rgb2lab((col_veg[0]/255, col_veg[1]/255, col_veg[2]/255))
@@ -179,6 +180,7 @@ def extract_veg_colour(image):
     colour = extract_greenest_colour(rgb_colours, image)
 
     return colour 
+
 
 def mask_vegetation(image_lab, colour_veg_lab, mode, av_info):
     """
@@ -199,6 +201,7 @@ def mask_vegetation(image_lab, colour_veg_lab, mode, av_info):
 
     return mask
 
+
 def in_colour_range(k, colour_veg_lab, image_lab):
 
     thr = k*np.ones((1,3))  
@@ -208,26 +211,18 @@ def in_colour_range(k, colour_veg_lab, image_lab):
 
     return mask
 
+
 def get_vegetation_mask(image, height_sky, colour_veg_rgb, mode, av_info):
 
     image_lab = rgb2lab(image/255)
     colour_veg_lab = rgb2lab((colour_veg_rgb[0]/255, colour_veg_rgb[1]/255, colour_veg_rgb[2]/255))
 
     vegetation_mask = mask_vegetation(image_lab, colour_veg_lab, mode, av_info)
-    #best_mask_median = cv2.medianBlur(best_mask,3) #may be useful?
-    #cv2.imshow('vegetation_mask', vegetation_mask)
-
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 3))
     mask = cv2.morphologyEx(vegetation_mask, cv2.MORPH_ERODE, kernel) #erosion that takes the minimum of neighbouring px
 
-    #cv2.imshow('vegetation_mask eroded ', mask)
-
-
-    #cv2.imshow('vegetation_mask, bushy eroded ', vegetation_mask - mask)
-
-    #cv2.waitKey(0)
-
     return vegetation_mask - mask
+
 
 def donuts(colors_x): 
     """
@@ -237,7 +232,6 @@ def donuts(colors_x):
     colors_pre_list = str(colors_x).replace('([(','').split(', (')[0:-1]
     df_rgb = [i.split('), ')[0] + ')' for i in colors_pre_list]
     df_percent = [i.split('), ')[1].replace(')','') for i in colors_pre_list]
-        #convert RGB to HEX code
 
     #convert RGB to HEX code
     df_color_up = [rgb2hex(int(i.split(", ")[0].replace("(","")),
@@ -263,7 +257,6 @@ def donuts(colors_x):
 
     ax.set_aspect("equal")
     fig.set_facecolor('white')
-    #plt.show() 
-    #cv2.imshow('donut : ', fig)
-    #cv2.waitKey(0)
+
     return 0
+
