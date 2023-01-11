@@ -5,7 +5,17 @@ import os
 VID = 0
 IMG = 1
 
-def obtain_images(name_images, image_folder, mode, output_width = 320):
+class img_attributes : 
+    name = 'rgb001.jpg'
+    img = np.zeros((320,200))
+    nb_row = 4
+    pts1 = []
+    pts2 = []
+    vp = [0,0]
+    validity = 0
+
+
+def obtain_images(name_images, image_folder, mode, output_width = 500):
     """
     input : name and foler of the images location
     returns : list containing all the images in the folder in RGB format
@@ -16,7 +26,7 @@ def obtain_images(name_images, image_folder, mode, output_width = 320):
             image = cv2.imread(os.path.join(image_folder, name))
             if image is not None : 
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                image = image_resize(image, output_width = output_width)
+                image = image_resize(image, output_width = 500)
                 images.append(image)
 
     if mode == IMG :
@@ -56,3 +66,4 @@ def obtain_name_images(image_folder):
                     img.endswith("png")]
 
     return name_images 
+    

@@ -81,10 +81,10 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
             #cv2.imwrite(filename, img_annotated)
 
                 
-        #stage = FINAL_PROCESS
+        """stage = FINAL_PROCESS
 
 
-    """
+    
         if stage == FINAL_PROCESS : #save data and evaluate it 
             print('...processing done!')
             if(mode ==SING_IMG):
@@ -94,8 +94,8 @@ def detection_process(images, mode, name_images, nb_row = 6, sky = 1, vp_on = 1)
                 cv2.imshow('My Results : ', cv2.cvtColor(cop, cv2.COLOR_RGB2BGR))
                 cv2.waitKey(0)
                 if cv2.waitKey(1) == ord('q'):
-                    cv2.destroyAllWindows()
-    """
+                    cv2.destroyAllWindows()"""
+    
 
     return 0 #return something en rapport avec le bon acheminement du process
 

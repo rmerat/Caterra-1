@@ -129,7 +129,6 @@ def extract_rgb_colours(image):
     return rgb_colours
 
 
-
 def rgb_to_hex(rgb):
     return '%02x%02x%02x' % rgb
 
@@ -190,11 +189,11 @@ def mask_vegetation(image_lab, colour_veg_lab, mode, av_info):
     mask = in_colour_range(k, colour_veg_lab, image_lab)
 
     if(mode==VID):
-        while(((np.size(np.where(mask>0))/np.size(mask))>1.5*av_info) and k>3):
+        while(((np.size(np.where(mask>0))/np.size(mask))>2*av_info) and k>3):
             k=k-1
             mask = in_colour_range(k, colour_veg_lab, image_lab)
         
-        while(((np.size(np.where(mask>0))/np.size(mask))<0.9*av_info) and k<13):
+        while(((np.size(np.where(mask>0))/np.size(mask))<1.2*av_info) and k<13):
             k=k+1
             mask = in_colour_range(k, colour_veg_lab, image_lab)
 
@@ -216,8 +215,19 @@ def get_vegetation_mask(image, height_sky, colour_veg_rgb, mode, av_info):
 
     vegetation_mask = mask_vegetation(image_lab, colour_veg_lab, mode, av_info)
     #best_mask_median = cv2.medianBlur(best_mask,3) #may be useful?
+    #cv2.imshow('vegetation_mask', vegetation_mask)
 
-    return vegetation_mask
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 3))
+    mask = cv2.morphologyEx(vegetation_mask, cv2.MORPH_ERODE, kernel) #erosion that takes the minimum of neighbouring px
+
+    #cv2.imshow('vegetation_mask eroded ', mask)
+
+
+    #cv2.imshow('vegetation_mask, bushy eroded ', vegetation_mask - mask)
+
+    #cv2.waitKey(0)
+
+    return vegetation_mask - mask
 
 def donuts(colors_x): 
     """
