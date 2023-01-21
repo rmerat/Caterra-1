@@ -1,7 +1,6 @@
 import math
 import numpy as np
 import cv2 
-import matplotlib.pyplot as plt 
 
 
 def find_approx(image, vegetation_mask, nb_row):
@@ -9,6 +8,13 @@ def find_approx(image, vegetation_mask, nb_row):
     input : image with veg segmented
     output : array of the mask per crops, vanishing point 
     """
+    bushy = 0
+    vegetation_mask_new = np.copy(vegetation_mask)
+
+    if((len(np.nonzero(vegetation_mask)[0])/(np.size(vegetation_mask)))>0.1): #if bushy 
+        print('bushy')
+        bushy = 1 
+        vegetation_mask_new = cv2.Canny(vegetation_mask,100,200)
 
     outlier = [0, 0, 0]
     pts1 = []
@@ -16,21 +22,49 @@ def find_approx(image, vegetation_mask, nb_row):
     acc_theta = []
     acc_rho = []
     acc_weight = []
-    row_image = np.copy(vegetation_mask) #here we delete little by little the row detected
-    hough_image = np.copy(image)
+    row_image = np.copy(vegetation_mask_new) #here we delete little by little the row detected
+    hough_image = np.copy(cv2.cvtColor(vegetation_mask_new, cv2.COLOR_GRAY2BGR))
 
+
+    it=0
     #il faut faire 2 acc theta et tout : l'un ou l'on remove les outliers et l'autre pas (pour ne pas les redecouvrire)
     while(outlier is not None):
-
+        it+=1
         pts1_new, pts2_new, acc_theta_new, acc_rho_new, acc_weight_new, hough_image_new = calculate_main_rows(row_image, nb_row, pts1, pts2, acc_theta, acc_rho, acc_weight, hough_image, outlier) 
-        
         vp = vp_detection(acc_theta_new, acc_rho_new, acc_weight_new) 
-        
         outlier, idx_outliers, acc_theta, acc_rho,  acc_weight, pts1, pts2, row_image = check_outliers(acc_theta_new, acc_rho_new, acc_weight_new, pts1_new, pts2_new, vp, row_image) 
+        
+        if(it>5):
+            row_image = np.copy(vegetation_mask) #here we delete little by little the row detected
+            hough_image = np.copy(image)
+            pts1 = []
+            pts2 = []
+            acc_theta = []
+            acc_rho = []
+            acc_weight = []
+            outlier = [0, 0, 0]
+            nb_row = nb_row -1 
+            print('nb_crop -=1')
+            it = 0
+        
+        if outlier is not None:
+            print(pts1_new,pts2_new, 'idx outliers : ', idx_outliers)
+            print('OUTLIERS')
+            #for p1, p2 in zip(pts1_new, pts2_new):
+                #cv2.line(hough_image, p1,p2, (255,0,0), 1)
+            
+            th = outlier[1]
+            rho = outlier[2]
+            p1,p2 = r_th_to_pts(rho, th)
+            cv2.line(hough_image, p1, p2, (0,0,255), int(2))
 
-    masks = make_masks(pts1, pts2, vp, vegetation_mask) 
 
-    return masks, vp, hough_image
+            cv2.imshow('hough image with outliers : ', hough_image)
+            cv2.waitKey(0)
+
+    masks = make_masks(pts1, pts2, vp, vegetation_mask, bushy) 
+
+    return masks, vp, hough_image, pts1, pts2, nb_row
 
 
 def check_outliers(acc_theta_new, acc_rho_new, acc_weight_new,  pts1_new, pts2_new, vp, row_image):
@@ -69,10 +103,15 @@ def check_outliers(acc_theta_new, acc_rho_new, acc_weight_new,  pts1_new, pts2_n
     return outlier, idx_outlier, acc_theta_new, acc_rho_new,  acc_weight_new, pts1_new, pts2_new, row_image
 
 
-def make_masks(pts1, pts2, vp, vegetation_mask):
+def make_masks(pts1, pts2, vp, vegetation_mask, bushy):
 
     masks = []
-    band_width = int(vegetation_mask.shape[1]/30)
+    #cv2.imshow('vegetation_mask', vegetation_mask)
+    #cv2.waitKey(0)
+    if(bushy==0):
+        band_width = int(vegetation_mask.shape[1]/20)
+    if(bushy>0):
+        band_width = int(vegetation_mask.shape[1]/10)
 
     for p1, p2 in zip(pts1, pts2):
         mask = np.zeros_like(vegetation_mask)
@@ -129,6 +168,7 @@ def find_acc_hough(mask, angle_acc, outlier):
 
     # Hough accumulator array of theta vs rho
     accumulator = np.zeros((2 * diag_len, len(thetas)), dtype=np.uint64)
+    accumulator_copy = np.zeros((2 * diag_len, len(thetas)), dtype=np.uint64)
     y_idxs, x_idxs = np.nonzero(mask)  
 
     # Vote in the hough accumulator
@@ -140,6 +180,7 @@ def find_acc_hough(mask, angle_acc, outlier):
             # Calculate rho. diag_len is added for a positive index
             rho = round(x * cos_t[t_idx] + y * sin_t[t_idx]) + diag_len
             accumulator[rho, t_idx] += 1
+            accumulator_copy[rho, t_idx] += 1
             if (abs(np.rad2deg(thetas[t_idx])-90)<25): #if horizontale lignes 
                 accumulator[:, t_idx] = 0
             
@@ -148,6 +189,13 @@ def find_acc_hough(mask, angle_acc, outlier):
                     accumulator[:, t_idx] = 0
 
             #add here something about outliers 
+    #plt.imshow(accumulator_copy)
+    #plt.xlabel("\u03C1")
+    #plt.xlim(-diag_len, diag_len)
+    #plt.ylabel("\u03F4")
+    #plt.ylim(0, np.pi)
+
+    #plt.show()
     
     return accumulator, thetas, rhos
 
@@ -166,10 +214,10 @@ def calculate_main_rows(row_image, nb_row, pts1, pts2, acc_theta, acc_rho, acc_w
 
         i=i+1
 
-        print('step ', i, 'of ', nb_row)
+        #print('step ', i, 'of ', nb_row)
 
         accumulator, thetas, rhos = find_acc_hough(row_image, acc_theta, outlier)
-        plt.imshow(accumulator)
+        #plt.imshow(accumulator)
         th_max = accumulator.max()
         r_idx, th_idx = np.where(accumulator>=th_max)
         rho = rhos[r_idx[0]]#in case multiple same max 
@@ -184,7 +232,7 @@ def calculate_main_rows(row_image, nb_row, pts1, pts2, acc_theta, acc_rho, acc_w
         pts2.append(p2)
 
         cv2.line(row_image, p1, p2, (0,0,0), int(band_width))
-        cv2.line(hough_image, p1, p2, (255,0,0), 2)
+        cv2.line(hough_image, p1, p2, (0,255,0), 2)
 
     return pts1, pts2, acc_theta, acc_rho, acc_weight, hough_image
 
