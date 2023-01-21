@@ -36,7 +36,7 @@ def get_sky_region_gradient(image):
     img_gray = cv2.medianBlur(img_gray, 5)
     lap = cv2.Laplacian(img_gray, cv2.CV_8U)
 
-    gradient_mask = (lap < 5).astype(np.uint8) # keep region with small laplacian
+    gradient_mask = (lap < 4).astype(np.uint8) # keep region with small laplacian
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 3))
     mask = cv2.morphologyEx(gradient_mask, cv2.MORPH_ERODE, kernel) #erosion, minimum of neighbouring px
@@ -125,7 +125,7 @@ def extract_rgb_colours(image):
     image_pil = Image.fromarray(image)
     colors_x = extcolors.extract_from_image(image_pil, tolerance = 6, limit=10) # 3, limit = 16) #16)
     rgb_colours = colors_to_array(colors_x)
-    donuts(colors_x)# for debugging 
+    #donuts(colors_x)# for debugging 
     return rgb_colours
 
 
@@ -221,6 +221,7 @@ def get_vegetation_mask(image, height_sky, colour_veg_rgb, mode, av_info):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 3))
     mask = cv2.morphologyEx(vegetation_mask, cv2.MORPH_ERODE, kernel) #erosion that takes the minimum of neighbouring px
 
+
     return vegetation_mask - mask
 
 
@@ -257,6 +258,8 @@ def donuts(colors_x):
 
     ax.set_aspect("equal")
     fig.set_facecolor('white')
+    plt.show()
+
 
     return 0
 
