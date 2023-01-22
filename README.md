@@ -14,8 +14,7 @@ niques, including color clustering for vegetation segmentation, Hough transform 
 crop row detection, as well as vanishing point detection and RANSAC for improved
 accuracy. 
 Results show that the system is able to detect crop rows with a median
-accuracy of 82% following the formula of the crop row detection accuracy developed
-by Vidovi ́c et al	
+accuracy of 82% following the formula of the crop row detection accuracy.
 
 	
 ## Setup
@@ -28,7 +27,7 @@ $ python main.py [picture/video]
 ```
 
 The arguments are as follow : 
-- madatory : mode = 'picture' or 'video'
+- mandatory : mode = 'picture' or 'video'
 - optional : -n = maximum number of crop row to be detected, default = 5 
 - if mode = video : 
     * optional : -k = number of frame before recalculation of the Hough transform, default = 5
