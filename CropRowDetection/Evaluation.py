@@ -66,7 +66,7 @@ def LoadGroundTruth(name_images, img_annotated, height_sky, imageHeight = 240, i
     GroundTruthPath = os.getcwd() +'/GroundTruth/'
     GroundTruthName = name_images.replace(".JPG", ".crp").replace(".jpg", ".crp") 
     GroundTruthLink = os.path.join(GroundTruthPath, GroundTruthName)
-    imagePath = os.getcwd() + '/Images/'
+    imagePath = os.getcwd() + '/ImagesCropRow/'
     halfWidth = int(imageWidth/2)
     ComparaisonImage =  np.copy(img_annotated) 
 
