@@ -1,0 +1,57 @@
+\chapter{Appendix - Hyperparameters }\label{sec:irgendwas}
+
+\begin{table}[h]
+\begin{tabularx}{\textwidth}{|>{\hsize=0.5 \hsize}X
+                                |>{\hsize=0.5 \hsize}X
+                                |>{\hsize=2 \hsize}X|}
+% \begin{center}
+
+ % \label{tab:tabnefz}
+ %\begin{tabularx}{\textwidth}{ |l|X| }
+ % \begin{tabular}{|l|l|l|l|l}
+ \hline
+ Parameters & Values & Description \\ \hline \hline
+ N & 5 & Default number of crop row to be detected \\
+  \hline
+
+ K & 5 & Default number of frame before executing the complete Hough Transform Process  \\
+  \hline
+
+ r & 0.1 & Ratio vegetatative pixels/non vegetation pixels of the image to be considered "bushy" \\
+  \hline
+
+ $\sigma$ & 0.3 & User defined parameter based on the accuracy needed for the CRDA \\
+  \hline
+
+ bw & 0.35 & Fraction of the bandwidth used for creating the mask over the width of the image  \\
+  \hline
+
+ $\alpha$ & 0.2 & Minimum angle for crop row to not be considered as the horizon [rad]\\
+  \hline
+
+ $\beta$ & 0.1 & Difference minimum between angles of two different crop row [rad] \\
+  \hline
+
+ tol & 6 & Color clustering tolerance for different color to be clustered together \\
+  \hline
+
+ 
+ lim & 6 & Maximum number of color clustered \\
+  \hline
+
+ k & 4 & Initial tolerance in vegetation segmentation - pixels within a color difference in norm of k to the vegetation color will be considered vegetation pixels  \\
+  \hline
+
+ $it_{max}$ & 5 & If $it_{max}$ outlier line were detected in a row, the algorithm start detecting $N-1$ lines \\
+  \hline
+
+ var & 1.25 & Maximum ratio difference between the distance of an inlier line to the vanishing point and the standard deviation  \\
+
+ \hline
+
+\end{tabularx}
+%  \end{tabular}
+% \end{center}
+ \caption{Hyperparameters used throughout the algorithm}
+\label{appendix:hyperparam}
+\end{table}
