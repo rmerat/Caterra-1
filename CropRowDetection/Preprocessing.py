@@ -14,6 +14,11 @@ IMG = 1
 
 
 def init(image, mode):
+    """
+    Initial Process :
+    inputs : rgb image, mode
+    returns :  sky height to be deleted, colour of the vegetation, average ratio vegetation/background
+    """
 
     av_info = 0
     height_sky = sky_process(image)
@@ -59,9 +64,9 @@ def get_sky_region_gradient(image):
     return grad_sky
 
 
-def cut_image_from_mask(grad_sky,img):
+def cut_image_from_mask(grad_sky):
     """
-    input : gradient of the image, image 
+    input : gradient of the image 
     output : height of the sky 
     """
 
@@ -69,7 +74,6 @@ def cut_image_from_mask(grad_sky,img):
     high = np.array([256,256,256])
     masked_sky = cv2.inRange(grad_sky, low, high)
     sky_height = 0
-
     h,w = masked_sky.shape
     i = h #start from the buttom of the image
     count = flag = j = 0
@@ -95,9 +99,9 @@ def sky_process(image) :
     """
 
     grad_sky = get_sky_region_gradient(image)
-    height_sky = cut_image_from_mask(grad_sky, image)
+    height_sky = cut_image_from_mask(grad_sky)
 
-    if (height_sky>(image.shape[0])/2): #if too much sky 
+    if (height_sky>(image.shape[0])/2): #if more then half of the image has a low gradient keep the entire image 
         height_sky = 0
 
     return height_sky
@@ -123,13 +127,18 @@ def extract_rgb_colours(image):
     output : list of main rgb colors 
     """
     image_pil = Image.fromarray(image)
-    colors_x = extcolors.extract_from_image(image_pil, tolerance = 6, limit=10) # 3, limit = 16) #16)
+    colors_x = extcolors.extract_from_image(image_pil, tolerance = 6, limit=10) 
     rgb_colours = colors_to_array(colors_x)
-    #donuts(colors_x)# for debugging 
+
+    #donuts(colors_x) # for debugging 
+    
     return rgb_colours
 
 
 def rgb_to_hex(rgb):
+    """
+    conversion rgb to hex format, all strings
+    """
     return '%02x%02x%02x' % rgb
 
 
@@ -143,22 +152,13 @@ def extract_greenest_colour(colors_rgb, image_rgb=0):
 
     for col in colors_rgb:
         col_lab = rgb2lab((col[0]/255, col[1]/255, col[2]/255))
-        diff = np.linalg.norm(np.asarray(col - [0,255,0])) # maybe better to use lab format?
+        diff = np.linalg.norm(np.asarray(col - [0,255,0])) 
         if diff < smallest_diff: # if closest to green
             smallest_diff = diff
             col_best_mask = col
 
     col_best_mask = col_best_mask.astype(int)
 
-    #r,g,b = (col_best_mask.data)
-    #colhex = rgb_to_hex((int(col_best_mask[0]),int(col_best_mask[1]),int(col_best_mask[2])))
-    #print('col selected : ', colhex)
-    #name = 'diferent maske for col ' + str(colhex)
-    #thr = [4,4,4]
-    #col_lab = rgb2lab((col_best_mask[0]/255, col_best_mask[1]/255, col_best_mask[2]/255))
-    #masked_img = cv2.inRange(rgb2lab(image_rgb/255), col_lab - thr, col_lab + thr)
-    #cv2.imshow(name, cv2.cvtColor(masked_img, cv2.COLOR_RGB2BGR))
-    #cv2.imshow('bitwise',cv2.cvtColor(cv2.bitwise_and(image_rgb, image_rgb, mask = masked_img), cv2.COLOR_RGB2BGR))  
 
     return col_best_mask
 
@@ -202,27 +202,35 @@ def mask_vegetation(image_lab, colour_veg_lab, mode, av_info):
     return mask
 
 
-def in_colour_range(k, colour_veg_lab, image_lab):
+def in_colour_range(k, color_veg_lab, image_lab):
+    """
+    input : threshold k corresponding to the maximum norm of the colour difference to the referance vegetation color to be considered vegetation, color_veg_lab = reference vegetation color in lab space, image_lab = image in lab space
+    return : binary image of segmented vegetation
+    """
 
     thr = k*np.ones((1,3))  
-    lower_col = colour_veg_lab - thr
-    upper_col = colour_veg_lab + thr
+    lower_col = color_veg_lab - thr
+    upper_col = color_veg_lab + thr
     mask = cv2.inRange(image_lab, lower_col, upper_col)
 
     return mask
 
 
-def get_vegetation_mask(image, height_sky, colour_veg_rgb, mode, av_info):
+def get_vegetation_mask(image, colour_veg_rgb, mode, av_info):
+    """
+    input : rgb image, referance vegetation color, mode, average ratio vegetation pixels to beckground
+    returns : vegetation segmented image, bushy region removed
+    """
 
     image_lab = rgb2lab(image/255)
     colour_veg_lab = rgb2lab((colour_veg_rgb[0]/255, colour_veg_rgb[1]/255, colour_veg_rgb[2]/255))
 
     vegetation_mask = mask_vegetation(image_lab, colour_veg_lab, mode, av_info)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 3))
-    mask = cv2.morphologyEx(vegetation_mask, cv2.MORPH_ERODE, kernel) #erosion that takes the minimum of neighbouring px
+    mask = cv2.morphologyEx(vegetation_mask, cv2.MORPH_ERODE, kernel) #erosion that takes the minimum of neighbouring px --> equal to 0 exept in extremely bushy region
 
 
-    return vegetation_mask - mask
+    return vegetation_mask - mask #remove extremely bushy region
 
 
 def donuts(colors_x): 

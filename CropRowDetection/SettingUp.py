@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import os 
+import sys
 
 VID = 0
 IMG = 1
@@ -8,7 +9,7 @@ IMG = 1
 
 def obtain_images(name_images, image_folder, mode, output_width = 320):
     """
-    input : name and foler of the images location
+    input : name + folder of the images location, mode of the program
     returns : list containing all the images in the folder in RGB format
     """
     images = []
@@ -21,10 +22,8 @@ def obtain_images(name_images, image_folder, mode, output_width = 320):
                 images.append(image)
 
     if mode == IMG :
-        print('INFO : NAME ', name_images,'FOLDER : ',  image_folder)
-        p = image_folder  + name_images
-        print('PATH : ',p) # os.path.join(image_folder, name_images))
-        image = cv2.imread(p) # os.path.join(image_folder, name_images))
+        path = image_folder  + name_images
+        image = cv2.imread(path)
         if image is not None : 
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = image_resize(image, output_width=output_width)
@@ -33,7 +32,9 @@ def obtain_images(name_images, image_folder, mode, output_width = 320):
     if (len(images) != 0) : 
         return images
     
-    return None
+    print('ERROR : file does not exist')
+    sys.exit(0)
+    return 0
 
 
 def image_resize(image, output_width = 500):

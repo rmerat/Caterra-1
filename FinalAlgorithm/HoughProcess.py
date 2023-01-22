@@ -47,7 +47,7 @@ def find_approx(image, vegetation_mask, nb_row):
             print('nb_crop -=1')
             it = 0
         
-        if outlier is not None:
+        """if outlier is not None:
             print(pts1_new,pts2_new, 'idx outliers : ', idx_outliers)
             print('OUTLIERS')
             #for p1, p2 in zip(pts1_new, pts2_new):
@@ -60,7 +60,7 @@ def find_approx(image, vegetation_mask, nb_row):
 
 
             cv2.imshow('hough image with outliers : ', hough_image)
-            cv2.waitKey(0)
+            cv2.waitKey(0)"""
 
     masks = make_masks(pts1, pts2, vp, vegetation_mask, bushy) 
 

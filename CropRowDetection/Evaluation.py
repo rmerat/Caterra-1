@@ -3,14 +3,17 @@ import cv2
 import csv
 import os
 
-def SaveData(cr, row, type):
+def SaveData(height, row):
+    """
+    inputs : height of the image, row = concatenation of 2 lists containing the points of the detected crop row
+    outputs : name of where the results are saved 
+    """
 
     acc_m = []
     acc_b = []
     pts1 = row[0]
     pts2 = row[1]
 
-    test = np.zeros_like(cr)
     for p1, p2 in zip(pts1, pts2):
         x1,y1 = p1
         x2,y2 = p2
@@ -19,17 +22,13 @@ def SaveData(cr, row, type):
 
         acc_m.append(m)
         acc_b.append(b)
-    
 
-    if(type ==0): 
-        name = '/home/roxane/Desktop/M3_2022/Caterra_2912/Caterra/FinalAlgorithm/CropsPersonnalResultsRANSAC.txt'
 
-    if(type== 1):
-        name = '/home/roxane/Desktop/M3_2022/Caterra_2912/Caterra/FinalAlgorithm/CropsPersonnalResultsHough.txt'
-
+    folder = os.getcwd()
+    name = os.path.join(folder, "ImagesResults", "CropsPersonnalResultsRANSAC.txt")
 
     with open(name, 'w') as f:
-        for line in range(cr.shape[0]):
+        for line in range(height):
             pts = []
             for m,b in zip(acc_m, acc_b):
                 pt = (line, int(m * line + b))
@@ -39,44 +38,45 @@ def SaveData(cr, row, type):
             f.write(pts)
             f.write('\n')
 
-        #cr = cv2.resize(cr, (320,240), interpolation = cv2.INTER_AREA) 
-
-    return cr
+    return name
 
 
-def LoadGroundTruth(name_images, img_annotated, height_sky, imageHeight = 240, imageWidth = 320, nb_crop = 5):
+def LoadGroundTruth(name_images, img_annotated, height_sky, imageHeight = 240, imageWidth = 320):
+    """
+    Creates array_GT = array containing for each line of the picture, the point of the ground truth's crops
+    input : name of the image, image, height of the sky
+    output : Image with the Ground Truth crops drawned, Comparaison Image, dv = distance between crops for each line, v0 = line where the GT information starts, array_GT
+    
+    """
 
-    GroundTruthPath = '/home/roxane/Desktop/M3_2022/crop_dataset_annoted/GT data/'
-    GroundTruthName = name_images.replace(".JPG", ".crp").replace(".jpg", ".crp") #crop_row_095.crp' #replace by name_images[0].crp and not .jpg
+    GroundTruthPath = os.getcwd() +'/GroundTruth/'
+    GroundTruthName = name_images.replace(".JPG", ".crp").replace(".jpg", ".crp") 
     GroundTruthLink = os.path.join(GroundTruthPath, GroundTruthName)
-    imagePath = '/home/roxane/Desktop/M3_2022/Caterra/dataset_straigt_lines/'
-    halfWidth = imageWidth/2;
+    imagePath = os.getcwd() + '/Images/'
+    halfWidth = int(imageWidth/2)
     ComparaisonImage =  np.copy(img_annotated) 
 
-    GTImage = cv2.imread(os.path.join(imagePath, name_images)) #+ .jpg??
-    #imageHeight = np.shape(img_annotated)[0]
+    GTImage = cv2.imread(os.path.join(imagePath, name_images)) 
 
     with open (GroundTruthLink, 'r') as f:
         cv = [row[0] for row in csv.reader(f,delimiter='\t')]
     with open (GroundTruthLink, 'r') as f:
         dv = [row[1] for row in csv.reader(f,delimiter='\t')]
 
-    v0 = imageHeight - np.shape(dv)[0]# + 1 #first image row where crop rows are present --> why +1 before?
+    v0 = imageHeight - np.shape(dv)[0] 
 
-    if(v0<=height_sky):
+    if(v0<=height_sky) :#first row analyze = height sky 
         GTImage = GTImage[height_sky:,:]
         cv = cv[abs(v0-height_sky):]
         dv = dv[abs(v0-height_sky):]
         array_GT = np.zeros(((imageHeight-height_sky),11))
         start = height_sky
     
-    if(v0>height_sky):
+    if(v0>height_sky): # first row analyze = v0
         array_GT = np.zeros(((imageHeight-v0),11))
         start = v0
         GTImage = GTImage[v0:,:]
         ComparaisonImage = ComparaisonImage[abs(v0-height_sky):,:]
-
-    Image =  np.copy(GTImage) 
 
     for v in range(0, imageHeight-start):
         center_dist = int(float(cv[v]))
@@ -102,34 +102,19 @@ def LoadGroundTruth(name_images, img_annotated, height_sky, imageHeight = 240, i
 
         for i in range(6):
             array_GT[v,5 + i] = halfWidth + center_dist + i*spacing
-            array_GT[v,5 - i] = halfWidth + center_dist - i*spacing #before v0 instead of height sky
-
-    #cv2.imshow('ground truth image : ', GTImage)
-    #cv2.imshow('ground truth + personal result image : ', imagePerso)
-
-    return GTImage, ComparaisonImage, Image, cv, dv, v0, array_GT
+            array_GT[v,5 - i] = halfWidth + center_dist - i*spacing 
 
 
-def evaluate_results(cv, dv, v0, height_sky, array_GT, type=0, imageHeight = 240, imageWidth = 320, nb_crop_row = 5):
-    halfWidth = imageWidth/2
-
-    path_my_results = '/home/roxane/Desktop/M3_2022/Caterra_2912/Caterra/'
-
-    if(type ==0): 
-        #name = 1
-        #name = 'FinalAlgorithm/CropsPersonnalResultsRANSAC.txt'
-        path = '/home/roxane/Desktop/M3_2022/Caterra_2912/Caterra/FinalAlgorithm/CropsPersonnalResultsRANSAC.txt'
-        #path = '/home/roxane/Desktop/M3_2022/Caterra_2912/Caterra/CropsPersonnalResultsRANSAC.txt'
-
-    if(type== 1):
-        #name = 'FinalAlgorithm/CropsPersonnalResultsHough.txt'
-        #path_my_results = os.path.join(path_my_results, "FinalAlgorithm", "CropsPersonnalResultsHough.txt")
-        path = '/home/roxane/Desktop/M3_2022/Caterra_2912/Caterra/FinalAlgorithm/CropsPersonnalResultsHough.txt'
-        #path = '/home/roxane/Desktop/M3_2022/Caterra_2912/Caterra/CropsPersonnalResultsHough.txt'
+    return GTImage, ComparaisonImage, dv, v0, array_GT
 
 
-    with open (path, 'r') as f:
-        cv_myresult = [row for row in csv.reader(f)]
+def evaluate_results(dv, v0, height_sky, array_GT, name, imageHeight = 240, imageWidth = 320, nb_crop_row = 5):
+    """
+    Calculates the CRDA score per Image 
+    """
+
+    with open (name, 'r') as f:
+        cv_myresult = [row for row in csv.reader(f)] #contains for each row of the image the position of the detected crop
 
     if(v0<=height_sky):
         array_myresults = np.zeros((imageHeight-height_sky,nb_crop_row*2))
@@ -144,26 +129,19 @@ def evaluate_results(cv, dv, v0, height_sky, array_GT, type=0, imageHeight = 240
                 b = int(row.strip(']').strip('[').strip(' (').strip(')'))
                 array_myresults[idx_line, idx_row] = b
 
-    #m, sigma, score, test = [3, 0.3, 0, 0]
-    #array_myresults = array_myresults[v0:,:]
-    array_myresults = array_myresults[:,1::2]
+    array_myresults = array_myresults[:,1::2] #keep only vertical position
     score_crda = 0
-    sigma = 0.3
+    sigma = 0.3 #if a point is more then 30% of the distance between two adjacant crop wrong, put to 0
 
-    for v in range(array_GT.shape[0]):
+    for v in range(array_GT.shape[0]): #CRDA formula 
         d_v = int(float(dv[v]))
         for i in range(array_GT.shape[1]):
             for j in range(nb_crop_row):
                 s = max(1-(pow(((array_GT[v,i] - array_myresults[v,j])/(sigma*d_v)),2)),0)
                 score_crda = score_crda + s
+
     score_crda = score_crda/(array_GT.shape[0]*nb_crop_row)
     
-    """if(type ==0): 
-        print('score RANSAC: ', score_crda)
-
-    if(type== 1):
-        print('score Hough: ', score_crda)"""
-
-    return score_crda, cv_myresult
+    return score_crda
 
 
