@@ -21,6 +21,8 @@ if __name__ == "__main__":
             - e : for picture mode = evaluation mode 
     """
 
+
+    #read arguments 
     p = ArgumentParser(description="Detect crop rows!")
     p.add_argument("mode", choices=["video", "picture"], default="video", help= 'specify mode ')
     p.add_argument("-k", type=int, default=5, help="number of frames before complete process (video only)", required=False)
@@ -33,7 +35,7 @@ if __name__ == "__main__":
     if args.mode == "video":
         mode = VID
         folder = os.getcwd() + '/VideoDataset'
-        name_images = SettingUp.obtain_name_images(folder)
+        name_images = SettingUp.obtain_name_images(folder) #obtain the ist of all the names of the frames of the folder
 
     elif args.mode == "picture":
         mode = IMG
@@ -52,6 +54,7 @@ if __name__ == "__main__":
     height_sky, col_veg, av_info = Preprocessing.init(images[0], mode)
 
     for idx, image in enumerate(images) : 
+
         if(mode==VID):
             print('image ', idx, 'of ', len(images))
 
@@ -60,12 +63,12 @@ if __name__ == "__main__":
         valid = 0
         
         while(valid==0):
-            if(hough_flag==1):
+            if(hough_flag==1): #first, hough transform to obtain a skeleton
                 masks, vp, hough_image, pts1, pts2, nb_row = HoughProcess.find_approx(image, vegetation_mask, nb_row)
                 hough_flag = 0
                 idx_since_hough = 0
 
-            if(hough_flag==0):
+            if(hough_flag==0): 
                 valid, masks, pts1, pts2, img_annotated = RansacProcess.find_rows(image, masks, vp, vegetation_mask)
                 rows = [pts1, pts2]
 
@@ -74,40 +77,42 @@ if __name__ == "__main__":
                 
                 if (idx_since_hough==0 and valid == 1):
                     list_rows.append(rows)
-                    list_validity.append(1)
+                    list_validity.append(valid)
 
                 if (idx_since_hough == 0 and valid == 0): 
                     list_rows.append(rows)
-                    list_validity.append(0)
-                    valid = 1 # we did our best, go to next frame anyway 
+                    list_validity.append(valid)
+                    valid = 1 # we did our best, go to next frame anyway but save the fact that it is detected non valid 
 
                 if (idx_since_hough>0 and valid == 1): 
                     list_rows.append(rows)
-                    list_validity.append(1)
+                    list_validity.append(valid)
 
-                if (idx_since_hough>0 and valid == 0): #do the hough process 
+                if (idx_since_hough>0 and valid == 0): # unvalid result --> do the hough process 
                     hough_flag = 1
         
         idx_since_hough = idx_since_hough + 1 
 
         if(mode==VID):
-            cv2.imshow('img_annotated',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+            cv2.imshow('Annotated Frame',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
             filename = os.getcwd() + '/VideoDatasetResults/' + 'img_' + str(idx).zfill(3) + '.jpg'
+            name = Evaluation.SaveData(img_annotated.shape[0], list_rows[0], 'img_' + str(idx).zfill(3), VID, validity=valid) 
             cv2.imwrite(filename,  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+            
             if cv2.waitKey(1) == ord('q'):
                 break
         
         if(mode==IMG):
             if(args.e == True):
-                name = Evaluation.SaveData(img_annotated.shape[0], list_rows[0]) 
+                name = Evaluation.SaveData(img_annotated.shape[0], list_rows[0], args.name, IMG) 
                 GTImage, ComparaisonImage, dv, v0, array_GT = Evaluation.LoadGroundTruth(args.name, img_annotated, height_sky)
                 score = Evaluation.evaluate_results(dv, v0, height_sky, array_GT, name, nb_crop_row=nb_row)
                 print('SCORE : ', score)
-                cv2.imshow('comparaison image ', ComparaisonImage)
+                cv2.imshow('Comparasion Image : Results (blue) vs Ground Truth (red)',cv2.cvtColor(ComparaisonImage, cv2.COLOR_RGB2BGR)) 
 
             filename = os.getcwd() + '/ImagesResults/' + args.name 
             cv2.imwrite(filename,  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
-            cv2.imshow('img_annotated',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+            cv2.imshow('Annotated Image',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
             cv2.waitKey(0)
 
     cv2.destroyAllWindows()

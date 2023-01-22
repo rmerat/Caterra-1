@@ -268,6 +268,5 @@ def donuts(colors_x):
     fig.set_facecolor('white')
     plt.show()
 
-
     return 0
 

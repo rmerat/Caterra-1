@@ -1,8 +1,9 @@
-#Autonomous Crop Row Detection of a Laser-based Weeding Robot
+# Autonomous Crop Row Detection of a Laser-based Weeding Robot
 
 ## Table of contents
 * [General info](#general-info)
 * [Setup](#setup)
+* [Output](#output)
 
 ## General info
 This project aims to develop a computer vision-based system for detecting crop rows
@@ -22,14 +23,27 @@ To run this project, clone it in a chosen repository and use the following comma
 
 ```
 $ cd ../*your repo*
+$ pip install -r requirements.txt
 $ python main.py [picture/video]
 ```
 
-The argument are as follow : 
-- madatory argument : mode = 'picture' or 'video'
-- optional argument : -n = maximum number of crop row to be detected, default = 5 
+The arguments are as follow : 
+- madatory : mode = 'picture' or 'video'
+- optional : -n = maximum number of crop row to be detected, default = 5 
 - if mode = video : 
-* optional argument : -k = number of frame before recalculation of the Hough transform, default = 5
+    * optional : -k = number of frame before recalculation of the Hough transform, default = 5
 - if mode = picture : 
-* optional argument : -p = name of the file to be analyzed 
-* optional argument : -e = evaluation on/off 
+    * optional : -p = name of the file to be analyzed 
+    * optional : -e = evaluation on/off 
+
+
+## Output
+
+
+For Video Mode : 
+- Annotated frames will be saved in *CropRowDetection/VideoDatasetResults* under the name *img_[idx].jpg*
+- Numerical results per frame will be saved in the same folder under the name *img_[idx]_Results.txt"*
+
+For Picture Mode : 
+- Numerical results will be saved in *CropRowDetection/ImagesResults* under *[nameoftheoriginalimage]_Results.txt*
+- Annotated images will be saved under their original non-annotated name in the same folder

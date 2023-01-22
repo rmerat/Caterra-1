@@ -3,7 +3,11 @@ import cv2
 import csv
 import os
 
-def SaveData(height, row):
+
+VID = 0
+IMG = 1
+
+def SaveData(height, row, img_name, mode, validity = 1):
     """
     inputs : height of the image, row = concatenation of 2 lists containing the points of the detected crop row
     outputs : name of where the results are saved 
@@ -25,19 +29,29 @@ def SaveData(height, row):
 
 
     folder = os.getcwd()
-    name = os.path.join(folder, "ImagesResults", "CropsPersonnalResultsRANSAC.txt")
+    if(mode == IMG):
+        name = img_name.replace(".JPG", "_Results.txt").replace(".jpg", "_Results.txt") 
+        name = os.path.join(folder, "ImagesResults", name)
+
+    else : 
+        name = os.path.join(folder, "VideoDatasetResults", img_name + "Results.txt")
 
     with open(name, 'w') as f:
         for line in range(height):
             pts = []
             for m,b in zip(acc_m, acc_b):
-                pt = (line, int(m * line + b))
+                if(validity==1):
+                    pt = (line, int(m * line + b))
+                else :
+                    pt = 0
+                    print('non valid frame ')
                 pts.append(pt)
+            
             
             pts = str(pts)
             f.write(pts)
             f.write('\n')
-
+    
     return name
 
 
