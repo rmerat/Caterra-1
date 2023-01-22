@@ -20,14 +20,12 @@ def find_rows(image, masks, vp, vegetation_mask):
     img_ransac_lines = np.copy(image)
     masks_new = []
     validity = m = 0
-    band_width = int(image.shape[1]/35) #before : 10
+    band_width = int(image.shape[1]/35) 
     np.random.seed(100)
 
     for i in range(len(masks)):
-        #print('nb crops final : ', len(masks))
         masked_images.append(cv2.bitwise_and(vegetation_mask, masks[i]))
-        #cv2.imshow('masked image ', masked_images[i])
-        #cv2.waitKey(0)
+
 
     for i in range(len(masks)): #for each row
         mask_single_crop = np.zeros_like(masks[0])
@@ -43,9 +41,7 @@ def find_rows(image, masks, vp, vegetation_mask):
 
             cv2.line(mask_single_crop, p1, p2, (255,0,0), 10)
             masks_new.append(mask_single_crop)
-            #cv2.imshow('masked images ', masked_images[i])
-            #cv2.imshow('ransac results', masked_images_cop)
-            #cv2.waitKey(0)
+
 
         else :
             return validity, masks, pts1, pts2, img_ransac_lines
@@ -102,21 +98,19 @@ def fit_line(data, masked_images_i):
 
 def valid_crop_slope(m, acc_m):
     """
-    input : slope of a single line
+    input : slope of the latest detected line, slopes of the other detected line
     output : validity of this slope
     """
 
-    #first : is it horizon?
-    thr = 0.2 #before : 0.1
+    thr = 0.2 
     validity = 1 
 
-    if (abs(m)<thr):
+    if (abs(m)<thr): # check if it is horizon
         validity = 0
     
-    #second : is it the same slopes as other crops? 
-    if (len(acc_m)>=1):
+    if (len(acc_m)>=1): #check if same slopes as other crops
         for m_others in acc_m:
-            if (abs(m-m_others)<0.1): # angle already detected 
+            if (abs(m-m_others)<0.1): # angle already detected for another line
                 validity = 0
                 break
 
