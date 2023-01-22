@@ -18,7 +18,7 @@ by Vidovi ́c et al
 
 	
 ## Setup
-To run this project, clone it in your chosen repository and use the following command:
+To run this project, clone it in a chosen repository and use the following command:
 
 ```
 $ cd ../*your repo*
@@ -27,5 +27,9 @@ $ python main.py [picture/video]
 
 The argument are as follow : 
 - madatory argument : mode = 'picture' or 'video'
+- optionnal argument : -n = number of crop row to be detected, default = 5. If less crop row then asked are visible on the image, the algorithm will automaticly detect less
 - if mode = video : 
-*optionnal argument : K = number of frame 
+*optionnal argument : -k = number of frame before recalculation of the Hough transform, default = 5
+- if mode = picture : 
+*optionnal argument : -p = name of the file to be analyzed 
+*optionnal argument : -e = evaluation on/off 
