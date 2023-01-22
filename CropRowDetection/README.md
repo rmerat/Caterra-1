@@ -27,9 +27,9 @@ $ python main.py [picture/video]
 
 The argument are as follow : 
 - madatory argument : mode = 'picture' or 'video'
-- optionnal argument : -n = number of crop row to be detected, default = 5. If less crop row then asked are visible on the image, the algorithm will automaticly detect less
+- optional argument : -n = maximum number of crop row to be detected, default = 5 
 - if mode = video : 
-*optionnal argument : -k = number of frame before recalculation of the Hough transform, default = 5
+* optional argument : -k = number of frame before recalculation of the Hough transform, default = 5
 - if mode = picture : 
-*optionnal argument : -p = name of the file to be analyzed 
-*optionnal argument : -e = evaluation on/off 
+* optional argument : -p = name of the file to be analyzed 
+* optional argument : -e = evaluation on/off 
