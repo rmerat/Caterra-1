@@ -66,7 +66,7 @@ This step reduces the Region of Interest of our image to speed up the algorithm.
 
 As the vegetation’s colour varies a lot depending on the lighting, a threshold for the vegetation index isn't robust enough. 
 
-K clusters of colors are created by counting the number of pixels with the same color in an image. The color with the highest pixel count is grouped with all other colors that have a difference in LAB space less than a certain threshold. This process is repeated for the second highest pixel count color, and so on, until K clusters are formed. The outcome can be seen in figure \ref{pics:ColourClus}.
+K clusters of colors are created by counting the number of pixels with the same color in an image. The color with the highest pixel count is grouped with all other colors that have a difference in LAB space less than a certain threshold. This process is repeated for the second highest pixel count color, and so on, until at max $l$ clusters are formed (cf tables \ref{appendix:hyperparam}, stops before if all pixels have been classified). The outcome can be seen in figure \ref{pics:ColourClus}.
 
 \begin{figure}[H]
    \centering
@@ -135,7 +135,7 @@ Our interest in the Hough Transform is two-fold : the lines are both used to cal
 \end{figure}
 
 
-The Hough Transform described in \ref{subsubsection:HT} finds all the lines in the image with values in the accumulator greater than a certain threshold.
+The Hough Transform described in section \ref{subsubsection:HT} finds all the lines in the image with values in the accumulator greater than a certain threshold.
 
 To ensure that the lines detected are spaced by a minimum threshold and no angle is the same, the algorithm implemented in this project uses a slightly different Hough transform.\\
 
@@ -263,7 +263,7 @@ A more concise explanation of this part can be visualized in Fig. \ref{pics:VPCA
 \section{Final detection : constrained RANSAC}
 \label{sec:gliederung}
 
-Once the estimate of the crop row position is estimated with the Hough transform and the vanishing point is calculated, RANSAC is used to fit lines in the center of the crop rows. Each fitted line uses a masked version of the vegetation segmented image, where only the regions surrounding the previously detected lines are kept, as shown in Fig. \ref{pics: Ransacmasking}. \\
+Once the estimate of the crop row position is estimated with the Hough transform and the vanishing point is calculated, RANSAC is used to fit lines in the center of the crop rows. Each fitted line uses a masked version of the vegetation segmented image, where only the regions surrounding the previously detected lines are kept, as shown in Fig. \ref{pics: Ransacmasking2}. \\
 
 \begin{figure}[H]
 \centering
@@ -287,8 +287,9 @@ Once the estimate of the crop row position is estimated with the Hough transform
 \end{subfigure}
 
 \caption{Segmentation of a single crop row}
+\label{pics: Ransacmasking2}
+
 \end{figure}
-\label{pics: Ransacmasking}
 
 
 
@@ -296,9 +297,9 @@ In this project, two approaches were tried to fit the rows with RANSAC :
 
 
 \begin{itemize}
-  \item Fit the crops between the surrounding region of the vanishing point previously calculated and the surroundings of the lines detected with the Hough transform. As a personalized Python version of the RANSAC function was used, the process took a lot of time. It also needed additional iterations to find the best model, as an extra parameter was needed (the vanishing point's surroundings).
+  \item Fit all the crops at once, with a hard constraint on the vanishing point. All the lines had to pass through a same point, taken from the domain surrounding the region of the vanishing point previously calculated. The second points of the different lines used for line fitting were taken from the surroundings of the lines previously detected with the Hough transform. As a personalized Python version of the RANSAC function was used, the process took a lot of time.
   
-  \item Fit a single crop around the surrounding region of a line detected with the Hough transform, with a heavy bias towards the vanishing point - for this, the data points used for fitting a single line are augmented with multiple times the vanishing point coordinates - this method was selected for the final process, as it was faster and gave similar results.
+  \item Fit single crop sequentially around the surrounding region of a line detected with the Hough transform, with a heavy bias towards the vanishing point - for this, the data points used for fitting a single line are augmented with multiple times the vanishing point coordinates - this method was selected for the final process, as it was faster and gave similar results.
 \end{itemize}
 
 There are two benefits to using RANSAC instead of the Hough transform :

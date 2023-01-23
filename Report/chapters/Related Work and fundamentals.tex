@@ -18,7 +18,7 @@ CNN can also be used to process images of crop rows and detect rows in new image
 
 To distinguish crops from the background, segmentation is usually performed using color index-based segmentation followed by threshold-based segmentation (\cite{VEGEIDX}). 
 
-Color index segmentation is widely used in agricultural image processing, the most common being the Excess Green Index (ExG, \cite{ExgreenIdx}), the Color Index of Vegetative Extraction (CIVE, \cite{CIVE}) and the normalized difference vegetation index (NDVI, \cite{NDVI}). Post-processed, the new gray image has higher-intensity pixels in place of the pixels.
+Color index segmentation is widely used in agricultural image processing, the most common being the Excess Green Index (ExG, \cite{ExgreenIdx}), the Color Index of Vegetative Extraction (CIVE, \cite{CIVE}) and the normalized difference vegetation index (NDVI, \cite{NDVI}). Post-processed, the new gray image has higher-intensity pixels where the vegetation is. 
 
 Once the image is grayscaled, it is usually binarized. The selection of the threshold has to be very well tuned. 
 A common technique is to use Otsu thresholding (\citet{4310076}), which autonomously finds a threshold that maximizes the variance between the foreground (the vegetation) and the background. This works by iterating through all possible threshold values and for each one, calculating the variance (how much the intensities in each group differ from the group's mean intensity) between the two groups of pixels. \\
@@ -77,7 +77,7 @@ This technique is one of the most widely used (\citet{HTRTTracking}) but, on its
 \subsubsection{RANSAC}
 
 RANSAC (RANdom SAmple Consensus) is an iterative algorithm for estimating the parameters of a mathematical model from a set of observed data that contains outliers (i.e. data that do not fit the model). Here, it is used for line fitting, and the model is defined by the slope and a point on the line. The basic idea behind it is to randomly select a subset of the data points (2 inliers are selected for line fitting) and use them to estimate the parameters of the model. The remaining points (the outliers) are then used to test the validity of the model. This process is repeated multiple times, and the model with the most inliers is chosen as the final solution. The inliers are the points that fall within a certain distance threshold from the line, and the outliers are the points that fall outside of this threshold. RANSAC is a robust algorithm that can handle outliers and still find the correct solution - in our case, it will eliminate weeds or vegetation in between crops. It is faster than the complete Hough transform method and, thus, more adapted for real-time applications.
-https://www.overleaf.com/project/6397556aaa04834b75ffb811#
+
 
 However, as with the least squares method, some prior information on crop rows is necessary: \citet{RANSACbase} based their RANSAC process on a skeleton of the row features. \\ \\ \\ \\
 
