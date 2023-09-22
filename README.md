@@ -46,3 +46,16 @@ For Video Mode :
 For Picture Mode : 
 - Numerical results will be saved in *CropRowDetection/ImagesResults* under *[nameoftheoriginalimage]_Results.txt*
 - Annotated images will be saved under their original non-annotated name in the same folder
+
+## Docker Image
+ A docker image can be used : 
+
+ ```
+$ docker run -it croprowdetectionimage
+```
+
+The results will be saved inside the container. To copy the images to your laptop you can use in a seperate command line : 
+
+ ```
+$ docker cp <docker id>:/app/ImagesResults/<name of the image> <path where the images will be copied>
+```
