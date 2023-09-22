@@ -94,13 +94,13 @@ if __name__ == "__main__":
         idx_since_hough = idx_since_hough + 1 
 
         if(mode==VID):
-            cv2.imshow('Annotated Frame',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+            #cv2.imshow('Annotated Frame',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
             filename = os.getcwd() + '/VideoDatasetResults/' + 'img_' + str(idx).zfill(3) + '.jpg'
             name = Evaluation.SaveData(img_annotated.shape[0], list_rows[0], 'img_' + str(idx).zfill(3), VID, validity=valid) 
             cv2.imwrite(filename,  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
             
-            if cv2.waitKey(1) == ord('q'):
-                break
+            # if cv2.waitKey(1) == ord('q'):
+            #     break
         
         if(mode==IMG):
             if(args.e == True):
@@ -108,11 +108,11 @@ if __name__ == "__main__":
                 GTImage, ComparaisonImage, dv, v0, array_GT = Evaluation.LoadGroundTruth(args.name, img_annotated, height_sky)
                 score = Evaluation.evaluate_results(dv, v0, height_sky, array_GT, name, nb_crop_row=nb_row)
                 print('SCORE : ', score)
-                cv2.imshow('Comparasion Image : Results (blue) vs Ground Truth (red)',cv2.cvtColor(ComparaisonImage, cv2.COLOR_RGB2BGR)) 
+                #cv2.imshow('Comparasion Image : Results (blue) vs Ground Truth (red)',cv2.cvtColor(ComparaisonImage, cv2.COLOR_RGB2BGR)) 
 
             filename = os.getcwd() + '/ImagesResults/' + args.name 
             cv2.imwrite(filename,  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
-            cv2.imshow('Annotated Image',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
-            cv2.waitKey(0)
+            #cv2.imshow('Annotated Image',  cv2.cvtColor(img_annotated, cv2.COLOR_RGB2BGR))
+            #cv2.waitKey(0)
 
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
